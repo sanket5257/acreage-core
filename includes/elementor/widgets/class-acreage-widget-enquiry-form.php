@@ -6,6 +6,19 @@
  * brief asks for. Enquiries are the only conversion on this site, so the form
  * does the unglamorous things properly: honeypot, nonce, rate limit, and a
  * Reply-To set to the sender so the client can just hit reply.
+ *
+ * USING A FORM PLUGIN INSTEAD
+ *
+ * The built-in form is the default because it makes the theme work on a site
+ * with no form plugin at all. Plenty of agencies already run Contact Form 7,
+ * WPForms or Gravity Forms and want their existing notifications, entry log
+ * and spam service, so the widget will render any form plugin's shortcode in
+ * place of its own markup.
+ *
+ * Nothing here knows what a shortcode expands to, which is the point: no
+ * per-plugin code path to maintain, and a plugin released next year works on
+ * the day it ships. Contact Form 7 gets its forms listed by name purely as a
+ * convenience, because it is the one nearly everybody already has.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -36,7 +49,25 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 			'default' => __( 'Ask about this farm', 'acreage' ),
 		) );
 
+		$this->add_control( 'form_source', array(
+			'label'       => __( 'Form', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::SELECT,
+			'default'     => 'builtin',
+			'options'     => self::source_options(),
+			'description' => __( 'The built-in form needs no plugin. Pick one of your own forms to use that instead.', 'acreage' ),
+		) );
+
+		$this->add_control( 'form_shortcode', array(
+			'label'       => __( 'Shortcode', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::TEXTAREA,
+			'rows'        => 2,
+			'placeholder' => '[wpforms id="123"]',
+			'description' => __( 'Paste the shortcode your form plugin gives you — WPForms, Gravity Forms, Fluent Forms, Forminator, anything.', 'acreage' ),
+			'condition'   => array( 'form_source' => 'shortcode' ),
+		) );
+
 		$this->add_control( 'to', array(
+			'condition'   => array( 'form_source' => 'builtin' ),
 			'label'       => __( 'Send enquiries to', 'acreage' ),
 			'type'        => \Elementor\Controls_Manager::TEXT,
 			'default'     => get_option( 'admin_email' ),
@@ -44,6 +75,7 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		) );
 
 		$this->add_control( 'subject_prefix', array(
+			'condition'   => array( 'form_source' => 'builtin' ),
 			'label'       => __( 'Subject line starts with', 'acreage' ),
 			'type'        => \Elementor\Controls_Manager::TEXT,
 			'default'     => __( 'Enquiry —', 'acreage' ),
@@ -51,12 +83,14 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		) );
 
 		$this->add_control( 'button_text', array(
+			'condition' => array( 'form_source' => 'builtin' ),
 			'label'   => __( 'Button wording', 'acreage' ),
 			'type'    => \Elementor\Controls_Manager::TEXT,
 			'default' => __( 'Send enquiry', 'acreage' ),
 		) );
 
 		$this->add_control( 'success_text', array(
+			'condition' => array( 'form_source' => 'builtin' ),
 			'label'   => __( 'After sending', 'acreage' ),
 			'type'    => \Elementor\Controls_Manager::TEXTAREA,
 			'rows'    => 3,
@@ -79,6 +113,95 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		$this->end_controls_section();
 	}
 
+	/**
+	 * The choices in the Form dropdown.
+	 *
+	 * Contact Form 7 stores each form as a post of type wpcf7_contact_form, so
+	 * they can be listed by name without loading any of its code. Guarded on the
+	 * post type rather than on a class or a constant: the post type is what we
+	 * actually read, and checking the thing you use is the check that cannot go
+	 * stale when the plugin renames its internals.
+	 *
+	 * @return array value => label
+	 */
+	private static function source_options() {
+		$options = array(
+			'builtin' => __( 'Built-in enquiry form', 'acreage' ),
+		);
+
+		if ( post_type_exists( 'wpcf7_contact_form' ) ) {
+			$forms = get_posts( array(
+				'post_type'        => 'wpcf7_contact_form',
+				'post_status'      => 'any',
+				'numberposts'      => 100,
+				'orderby'          => 'title',
+				'order'            => 'ASC',
+				'suppress_filters' => false,
+			) );
+
+			foreach ( $forms as $form ) {
+				$options[ 'cf7:' . $form->ID ] = sprintf(
+					/* translators: %s: the name of a Contact Form 7 form. */
+					__( 'Contact Form 7 — %s', 'acreage' ),
+					$form->post_title
+				);
+			}
+		}
+
+		$options['shortcode'] = __( 'Another form plugin (paste a shortcode)', 'acreage' );
+
+		/**
+		 * Filter the form sources offered by the Enquiry Form widget.
+		 *
+		 * @param array $options value => label.
+		 */
+		return apply_filters( 'acreage_core_form_sources', $options );
+	}
+
+	/**
+	 * The shortcode to render, or '' to use the built-in form.
+	 *
+	 * A source of "cf7:12" whose form has since been deleted falls back to the
+	 * built-in form rather than printing a raw, unexpanded shortcode at a
+	 * visitor — a dead form plugin should cost the site a nicer form, never its
+	 * only means of being contacted.
+	 *
+	 * @param array $settings Widget settings.
+	 * @return string
+	 */
+	private function chosen_shortcode( $settings ) {
+		$source = isset( $settings['form_source'] ) ? $settings['form_source'] : 'builtin';
+
+		if ( 'shortcode' === $source ) {
+			return trim( (string) ( isset( $settings['form_shortcode'] ) ? $settings['form_shortcode'] : '' ) );
+		}
+
+		if ( 0 === strpos( $source, 'cf7:' ) ) {
+			/*
+			 * Deactivating Contact Form 7 leaves its form rows in the database,
+			 * so get_post() still answers and post_type still reads
+			 * wpcf7_contact_form. Testing the post alone therefore says "yes,
+			 * that form exists" about a plugin that is switched off, and the
+			 * page ends up with the shortcode unexpanded. Ask whether CF7 is
+			 * running as well.
+			 */
+			if ( ! post_type_exists( 'wpcf7_contact_form' ) ) {
+				return '';
+			}
+
+			$id   = absint( substr( $source, 4 ) );
+			$form = $id ? get_post( $id ) : null;
+
+			if ( ! $form || 'wpcf7_contact_form' !== $form->post_type ) {
+				return '';
+			}
+
+			return sprintf( '[contact-form-7 id="%d" title="%s"]', $id, esc_attr( $form->post_title ) );
+		}
+
+		return '';
+	}
+
 	/** The farm this form is about, if any. */
 	private function subject_post() {
 		return is_singular( Acreage_Core_Post_Types::POST_TYPE ) ? get_queried_object_id() : 0;
@@ -88,6 +211,12 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		$settings = $this->get_settings_for_display();
 		$post_id  = $this->subject_post();
 		$farm     = $post_id ? get_the_title( $post_id ) : '';
+
+		$shortcode = $this->chosen_shortcode( $settings );
+
+		if ( '' !== $shortcode && $this->render_plugin_form( $settings, $shortcode ) ) {
+			return;
+		}
 
 		// Resolve the routing here, then sign it, so the handler can tell the
 		// owner's settings apart from whatever a browser chooses to send.
@@ -172,6 +301,43 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Render a form owned by another plugin.
+	 *
+	 * The wrapper classes are the whole contract with the stylesheet: whatever
+	 * markup the plugin emits lands inside .acreage-w-form--plugin, and the
+	 * theme's form rules reach it there. Without that the form renders in the
+	 * plugin's own default styling and looks pasted on.
+	 *
+	 * @param array  $settings  Widget settings.
+	 * @param string $shortcode Shortcode to expand.
+	 * @return bool True when a form was printed; false to fall back to the built-in one.
+	 */
+	private function render_plugin_form( $settings, $shortcode ) {
+		$output = do_shortcode( $shortcode );
+
+		/*
+		 * An unregistered shortcode comes back unchanged — the plugin was
+		 * deactivated, or the ID was mistyped. Printing "[wpforms id=7]" at a
+		 * visitor is bad; printing nothing at all is worse, because enquiries
+		 * are the only conversion on the page. Tell whoever is editing what is
+		 * wrong, and give the visitor the built-in form meanwhile.
+		 */
+		if ( trim( $output ) === trim( $shortcode ) ) {
+			$this->editor_notice( __( 'That form did not render, so the built-in enquiry form is being shown instead. Check the form plugin is active and the shortcode is correct.', 'acreage' ) );
+			return false;
+		}
+		?>
+		<div class="acreage-w-form acreage-w-form--plugin">
+			<?php if ( ! empty( $settings['heading'] ) ) : ?>
+				<h2 class="acreage-w-form__heading"><?php echo esc_html( $settings['heading'] ); ?></h2>
+			<?php endif; ?>
+			<?php echo $output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- shortcode output, escaped by the form plugin. ?>
+		</div>
+		<?php
+		return true;
 	}
 
 }
