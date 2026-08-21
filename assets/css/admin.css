@@ -1,0 +1,54 @@
+/* Acreage Core — the add-a-farm form.
+   One screen of labelled fields. No canvas, no blocks, no drag-and-drop layout. */
+
+.acreage-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 28px;}
+.acreage-field{margin:0;display:flex;flex-direction:column;gap:5px;}
+.acreage-field__label{font-weight:600;font-size:13px;}
+.acreage-field__input{width:100%;max-width:340px;}
+.acreage-field__hint{color:#666;font-size:12px;line-height:1.5;font-style:normal;}
+.acreage-field--check{grid-column:1 / -1;}
+.acreage-field--check label{display:inline-flex;align-items:center;gap:8px;}
+
+.acreage-note{
+  background:#f6f7f7;border-left:4px solid #46583F;padding:10px 14px;margin:0 0 18px;
+}
+
+.acreage-section{margin:0 0 26px;padding:0 0 22px;border-bottom:1px solid #e0e0e0;}
+.acreage-section:last-child{border-bottom:0;padding-bottom:0;margin-bottom:0;}
+.acreage-section__title{margin:0 0 3px;font-size:14px;}
+.acreage-section .acreage-field__hint{display:block;margin:0 0 8px;}
+
+.acreage-gallery{
+  display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px;padding:0;list-style:none;
+  min-height:20px;
+}
+.acreage-gallery__item{
+  position:relative;width:100px;height:100px;overflow:hidden;
+  border:1px solid #dcdcde;background:#f0f0f1;cursor:move;
+}
+.acreage-gallery__item img{width:100%;height:100%;object-fit:cover;display:block;}
+.acreage-gallery__remove{
+  position:absolute;top:0;right:0;width:22px;height:22px;line-height:1;
+  border:0;background:rgba(30,36,31,.78);color:#fff;cursor:pointer;font-size:15px;
+}
+.acreage-gallery__remove:hover{background:#9E5230;}
+
+/* ------------------------------------------------------------- quick add */
+.acreage-quick__lede{max-width:46em;font-size:14px;}
+.acreage-req{color:#9E5230;}
+.acreage-quick__radio{margin-right:20px;}
+.acreage-quick__inline{margin-left:14px;}
+.acreage-quick__photo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.acreage-quick__preview img{
+  width:120px;height:80px;object-fit:cover;display:block;border:1px solid #dcdcde;
+}
+.acreage-quick__actions .button{margin-right:8px;}
+
+/* ------------------------------------------------------------- checklist */
+.acreage-checklist{margin:0 0 10px;}
+.acreage-checklist__item{margin:0 0 5px;font-size:13px;}
+.acreage-checklist__item.is-done{color:#46583F;}
+.acreage-checklist__item.is-missing{color:#8B8677;}
+.acreage-checklist__item span{display:inline-block;width:14px;font-weight:700;}
+.acreage-checklist__note{margin:0;font-size:12px;color:#666;}
+.acreage-checklist__note--ok{color:#46583F;font-weight:600;}
