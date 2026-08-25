@@ -6,11 +6,28 @@
  * write to the URL, so every combination is linkable, exactly as the mockup's
  * build note asks. Counts are shown so a visitor can see where the inventory
  * actually is before clicking.
+ *
+ * LIVE, BUT STILL A FORM
+ *
+ * When there is a Farm Grid on the page set to "Whatever the page is filtered
+ * to", ticking a box re-draws the farms in place instead of reloading — see
+ * assets/js/filters.js. That is an enhancement laid over this form, never a
+ * replacement for it: the markup below is a working GET form with an Apply
+ * button, the script hides the button only once it has taken over, and every
+ * result still has its own URL. Turn JavaScript off and the panel behaves
+ * exactly as it did before.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
+
+	/**
+	 * The filter state of this request, worked out lazily and kept.
+	 *
+	 * @var array|null
+	 */
+	private $state = null;
 
 	public function get_name() {
 		return 'acreage-farm-filters';
@@ -25,15 +42,7 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 	}
 
 	private function axes() {
-		return array(
-			'listing_category' => __( 'Kind of farm', 'acreage' ),
-			'province'         => __( 'Province', 'acreage' ),
-			'region'           => __( 'Region', 'acreage' ),
-			'size_band'        => __( 'Size', 'acreage' ),
-			'price_band'       => __( 'Price', 'acreage' ),
-			'status'           => __( 'Status', 'acreage' ),
-			'species'          => __( 'Species', 'acreage' ),
-		);
+		return Acreage_Core_Filters::axes();
 	}
 
 	protected function register_controls() {
@@ -94,117 +103,43 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 	}
 
 	/**
-	 * The term slugs currently filtering one axis.
+	 * What the page is currently filtered by.
 	 *
-	 * READS THE TERM ARCHIVE AS WELL AS THE QUERY STRING
+	 * Worked out once per render and reused: the panel asks the same question
+	 * for every checkbox on every axis, and the answer cannot change mid-render.
+	 * Acreage_Core_Filters is what knows how to read it — from the query string,
+	 * from a term archive, or from both at once — so a visitor who arrived from
+	 * a province tile sees that province ticked and can untick it.
 	 *
-	 * A farm can be filtered three different ways on this site and only one of
-	 * them is a query argument:
-	 *
-	 *   /farms/?province=limpopo        the filter panel itself
-	 *   /province/limpopo/              a province tile, a category card, or a
-	 *                                   breadcrumb link — all get_term_link()
-	 *   /?s=waterberg&post_type=listing a keyword search
-	 *
-	 * The panel used to look at $_GET alone. So a visitor who arrived from a
-	 * province tile saw a filtered list of farms, every checkbox unticked, and
-	 * no way to clear anything — because as far as this widget was concerned
-	 * nothing was filtered at all. Asking the query, not just the URL, is what
-	 * makes the three routes behave the same.
-	 *
-	 * @param string $taxonomy Taxonomy name.
-	 * @return string[] Term slugs.
+	 * @return array taxonomy => slugs.
 	 */
-	private function current_terms( $taxonomy ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only filtering.
-		$raw    = isset( $_GET[ $taxonomy ] ) ? wp_unslash( $_GET[ $taxonomy ] ) : '';
-		$chosen = array_filter( array_map( 'sanitize_title', is_array( $raw ) ? $raw : explode( ',', $raw ) ) );
-
-		if ( is_tax( $taxonomy ) ) {
-			$term = get_queried_object();
-
-			if ( $term instanceof WP_Term ) {
-				$chosen[] = $term->slug;
-			}
+	private function state() {
+		if ( null === $this->state ) {
+			$this->state = Acreage_Core_Filters::from_request();
 		}
 
-		return array_values( array_unique( $chosen ) );
+		return $this->state;
+	}
+
+	/** The term slugs currently filtering one axis. */
+	private function current_terms( $taxonomy ) {
+		$state = $this->state();
+
+		return isset( $state[ $taxonomy ] ) ? $state[ $taxonomy ] : array();
 	}
 
 	/** The keyword currently searched, if any. */
 	private function current_search() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only search.
-		return isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		return Acreage_Core_Filters::search( $_GET );
 	}
 
-	/**
-	 * Every filter in force, as removable chips.
-	 *
-	 * Built from ALL seven axes, not only the ones this widget is set to
-	 * display. Hiding the Species list in the widget settings does not stop a
-	 * ?species=sable arriving from somewhere else, and a filter the visitor can
-	 * neither see nor switch off is the worst of both.
-	 *
-	 * @return array[] label, and the URL that drops just this one.
-	 */
-	private function active_filters() {
-		$state = array();
-
-		foreach ( array_keys( $this->axes() ) as $taxonomy ) {
-			if ( taxonomy_exists( $taxonomy ) ) {
-				$state[ $taxonomy ] = $this->current_terms( $taxonomy );
-			}
-		}
-
-		$search = $this->current_search();
-		$chips  = array();
-
-		/*
-		 * Every chip's URL is rebuilt from the canonical state rather than by
-		 * editing the current URL, so a pretty term archive and a query string
-		 * both collapse to the same shape and removing one filter can never
-		 * strand the others.
-		 */
-		$build = function ( $state, $search ) {
-			$url = $this->archive_url();
-
-			foreach ( $state as $taxonomy => $slugs ) {
-				if ( $slugs ) {
-					$url = add_query_arg( $taxonomy, implode( ',', $slugs ), $url );
-				}
-			}
-
-			if ( '' !== $search ) {
-				$url = add_query_arg( 's', rawurlencode( $search ), $url );
-			}
-
-			return $url;
-		};
-
-		foreach ( $state as $taxonomy => $slugs ) {
-			foreach ( $slugs as $slug ) {
-				$term = get_term_by( 'slug', $slug, $taxonomy );
-
-				$without                        = $state;
-				$without[ $taxonomy ]           = array_values( array_diff( $slugs, array( $slug ) ) );
-
-				$chips[] = array(
-					'label' => $term ? $term->name : $slug,
-					'url'   => $build( $without, $search ),
-				);
-			}
-		}
-
-		if ( '' !== $search ) {
-			$chips[] = array(
-				/* translators: %s: the keyword searched for. */
-				'label' => sprintf( __( 'Search: %s', 'acreage' ), $search ),
-				'url'   => $build( $state, '' ),
-			);
-		}
-
-		return $chips;
+	/** The sort currently in force, if any. */
+	private function current_sort() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public read-only sorting.
+		return Acreage_Core_Filters::sort( $_GET );
 	}
+
 
 	protected function render() {
 		$settings = $this->get_settings_for_display();
@@ -214,48 +149,80 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 			return;
 		}
 
-		$chips = $this->active_filters();
+		$state  = $this->state();
+		$search = $this->current_search();
+		$sort   = $this->current_sort();
+		$chips  = Acreage_Core_Filters::chips( $state, $search, $sort );
+
+		/*
+		 * The panel always carries its script. It is small, it only ever enhances
+		 * the form below, and it does nothing at all on a page that has no
+		 * archive grid for it to drive.
+		 */
+		wp_enqueue_script( 'acreage-filters' );
 		?>
-		<form class="acreage-w-filters" method="get" action="<?php echo esc_url( $this->archive_url() ); ?>">
+		<form class="acreage-w-filters" method="get" action="<?php echo esc_url( $this->archive_url() ); ?>"
+			data-endpoint="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
+			data-archive="<?php echo esc_url( Acreage_Core_Filters::archive_url() ); ?>"
+			data-axes="<?php echo esc_attr( implode( ',', Acreage_Core_Filters::taxonomies() ) ); ?>">
 			<input type="hidden" name="post_type" value="<?php echo esc_attr( Acreage_Core_Post_Types::POST_TYPE ); ?>">
+
+			<?php
+			/*
+			 * A keyword and a sort survive a filter change.
+			 *
+			 * Without these two lines, applying a filter on top of a search threw
+			 * the search away — the panel submitted only its own checkboxes — and
+			 * the visitor got the whole inventory back with no explanation. The
+			 * chip bar above already offers to remove the search deliberately;
+			 * that is the only way it should ever go.
+			 */
+			?>
+			<?php if ( '' !== $search ) : ?>
+				<input type="hidden" name="s" value="<?php echo esc_attr( $search ); ?>">
+			<?php endif; ?>
+
+			<?php if ( '' !== $sort ) : ?>
+				<input type="hidden" name="sort" value="<?php echo esc_attr( $sort ); ?>">
+			<?php endif; ?>
 
 			<?php if ( $settings['heading'] ) : ?>
 				<h2 class="acreage-w-filters__heading"><?php echo esc_html( $settings['heading'] ); ?></h2>
 			<?php endif; ?>
 
-			<?php if ( $chips ) : ?>
-				<div class="acreage-w-filters__active">
-					<span class="acreage-w-filters__activelabel">
-						<?php esc_html_e( 'Filtering by', 'acreage' ); ?>
-					</span>
-
-					<ul class="acreage-w-filters__chips">
-						<?php foreach ( $chips as $chip ) : ?>
-							<li>
-								<a class="acreage-w-filters__chip" href="<?php echo esc_url( $chip['url'] ); ?>">
-									<span><?php echo esc_html( $chip['label'] ); ?></span>
-									<span class="acreage-w-filters__chipx" aria-hidden="true">&times;</span>
-									<span class="screen-reader-text">
-										<?php
-										printf(
-											/* translators: %s: the filter being removed. */
-											esc_html__( 'Remove filter: %s', 'acreage' ),
-											esc_html( $chip['label'] )
-										);
-										?>
-									</span>
-								</a>
-							</li>
-						<?php endforeach; ?>
-					</ul>
-
-					<a class="acreage-w-filters__clearall" href="<?php echo esc_url( $this->archive_url() ); ?>">
-						<?php esc_html_e( 'Clear all', 'acreage' ); ?>
-					</a>
-				</div>
-			<?php endif; ?>
+			<?php
+			/*
+			 * The chip bar is always wrapped, even when empty, because the live
+			 * filter replaces its contents. A container that only exists when
+			 * something is filtered is a container the script cannot fill on the
+			 * click that filters the first thing.
+			 */
+			?>
+			<div class="acreage-w-filters__activewrap">
+				<?php
+				echo Acreage_Core_Filters::chips_html( $state, $search, $sort ); // phpcs:ignore WordPress.Security.EscapingOutput.OutputNotEscaped -- escaped at source.
+				?>
+			</div>
 
 			<?php
+			/*
+			 * Live results say how many farms matched. A visitor who ticks a box
+			 * and sees the cards change still deserves to be told the size of what
+			 * they are looking at, and a screen reader has nothing else to go on.
+			 * Printed empty and hidden; the script is what fills it.
+			 */
+			?>
+			<p class="acreage-w-filters__result" role="status" aria-live="polite" hidden></p>
+
+			<?php
+			/*
+			 * The checkbox groups are captured rather than printed straight out,
+			 * so that the loop can report back which slugs it actually gave a
+			 * checkbox to. What it did not is dealt with immediately below.
+			 */
+			ob_start();
+			$rendered = array();
+
 			foreach ( $this->axes() as $taxonomy => $label ) :
 				if ( 'yes' !== $settings[ 'show_' . $taxonomy ] || ! taxonomy_exists( $taxonomy ) ) {
 					continue;
@@ -276,7 +243,10 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 					<legend class="acreage-w-filters__legend"><?php echo esc_html( $label ); ?></legend>
 
 					<ul class="acreage-w-filters__list">
-						<?php foreach ( $terms as $term ) : ?>
+						<?php
+						foreach ( $terms as $term ) :
+							$rendered[ $taxonomy ][] = $term->slug;
+							?>
 							<li>
 								<label class="acreage-w-filters__option">
 									<input
@@ -293,13 +263,44 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 						<?php endforeach; ?>
 					</ul>
 				</fieldset>
-			<?php endforeach; ?>
+				<?php
+			endforeach;
+
+			$groups = ob_get_clean();
+
+			/*
+			 * A filter with no checkbox is carried anyway.
+			 *
+			 * Species is off by default, and a visitor can still arrive on
+			 * ?species=sable from a listing page or a shared link. The chip bar
+			 * shows it and offers to remove it, deliberately — but the form used
+			 * to submit only its own checkboxes, so the next tick of any other box
+			 * threw that filter away without anybody asking. These carry it, for
+			 * the submitted form and for the live one alike.
+			 */
+			foreach ( $state as $taxonomy => $slugs ) {
+				foreach ( $slugs as $slug ) {
+					if ( isset( $rendered[ $taxonomy ] ) && in_array( $slug, $rendered[ $taxonomy ], true ) ) {
+						continue;
+					}
+
+					printf(
+						'<input type="hidden" name="%s[]" value="%s">',
+						esc_attr( $taxonomy ),
+						esc_attr( $slug )
+					);
+				}
+			}
+
+			echo $groups; // phpcs:ignore WordPress.Security.EscapingOutput.OutputNotEscaped -- escaped as it was built.
+			?>
 
 			<div class="acreage-w-filters__actions">
 				<button class="acreage-w-filters__submit" type="submit"><?php echo esc_html( $settings['submit_text'] ); ?></button>
 
 				<?php if ( $chips ) : ?>
-					<a class="acreage-w-filters__clear" href="<?php echo esc_url( $this->archive_url() ); ?>">
+					<?php // Keeps the sort, for the same reason Clear all does. ?>
+					<a class="acreage-w-filters__clear" href="<?php echo esc_url( Acreage_Core_Filters::url( array(), '', $sort ) ); ?>">
 						<?php
 						printf(
 							/* translators: %d: number of filters currently applied. */

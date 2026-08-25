@@ -16,6 +16,16 @@ defined( 'ABSPATH' ) || exit;
 
 class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 
+	/**
+	 * The range the gallery's "photograph size" slider is held to.
+	 *
+	 * Below the lower bound a thumbnail stops showing what the photograph is of;
+	 * above the upper one the row is back to being a stack of full-width images,
+	 * which is the thing the setting exists to avoid.
+	 */
+	const MIN_THUMB = 120;
+	const MAX_THUMB = 400;
+
 	public function get_name() {
 		return 'acreage-farm-details';
 	}
@@ -42,6 +52,7 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			'species'      => __( 'Species list', 'acreage' ),
 			'gallery'      => __( 'Photograph gallery', 'acreage' ),
 			'video'        => __( 'YouTube video', 'acreage' ),
+			'location'     => __( 'Location map', 'acreage' ),
 			'similar'      => __( 'Similar farms', 'acreage' ),
 		);
 	}
@@ -64,18 +75,56 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			'type'         => \Elementor\Controls_Manager::SWITCHER,
 			'default'      => 'yes',
 			'return_value' => 'yes',
-			'condition'    => array( 'part' => array( 'sections', 'improvements', 'wildlife', 'land_claims' ) ),
+			'condition'    => array( 'part' => array( 'sections', 'description', 'improvements', 'wildlife', 'land_claims', 'location' ) ),
 		) );
 
-		$this->add_control( 'columns', array(
-			'label'     => __( 'Gallery columns', 'acreage' ),
-			'type'      => \Elementor\Controls_Manager::SELECT,
-			'default'   => '3',
-			'options'   => array( '1' => '1', '2' => '2', '3' => '3', '4' => '4' ),
-			'condition' => array( 'part' => 'gallery' ),
-			'selectors' => array(
-				'{{WRAPPER}} .acreage-w-gallery' => 'grid-template-columns:repeat({{VALUE}},minmax(0,1fr));',
+		$this->add_control( 'location_heading', array(
+			'label'     => __( 'Map heading', 'acreage' ),
+			'type'      => \Elementor\Controls_Manager::TEXT,
+			'default'   => __( 'Location', 'acreage' ),
+			'condition' => array( 'part' => 'location', 'show_headings' => 'yes' ),
+		) );
+
+		$this->add_control( 'map_height', array(
+			'label'      => __( 'Map height', 'acreage' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'size_units' => array( 'px' ),
+			'range'      => array( 'px' => array( 'min' => 180, 'max' => 700 ) ),
+			'default'    => array( 'unit' => 'px', 'size' => 420 ),
+			'condition'  => array( 'part' => 'location' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .acreage-w-location__map' => '--acreage-w-map-h:{{SIZE}}px;',
 			),
+		) );
+
+		/*
+		 * A size, not a column count.
+		 *
+		 * The gallery used to be three fixed columns, which meant that on a wide
+		 * listing page five photographs came out at 467px each — bigger than the
+		 * cards on the results page, and a scroll apiece. What a visitor wants
+		 * from the row under the hero is to see at a glance how many photographs
+		 * there are and pick one, so the right control is how big a thumbnail
+		 * should be; how many fit is then the page's business, not a number
+		 * chosen once at build time and wrong on every other screen.
+		 */
+		$this->add_control( 'lightbox', array(
+			'label'        => __( 'Open photographs in a lightbox', 'acreage' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'default'      => 'yes',
+			'return_value' => 'yes',
+			'condition'    => array( 'part' => 'gallery' ),
+			'description'  => __( 'All the photographs of the farm become one slideshow, with arrows and the arrow keys to move between them. Turned off, each photograph opens on its own in a new tab.', 'acreage' ),
+		) );
+
+		$this->add_control( 'thumb_size', array(
+			'label'       => __( 'Photograph size', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::SLIDER,
+			'size_units'  => array( 'px' ),
+			'range'       => array( 'px' => array( 'min' => self::MIN_THUMB, 'max' => self::MAX_THUMB ) ),
+			'default'     => array( 'unit' => 'px', 'size' => 260 ),
+			'condition'   => array( 'part' => 'gallery' ),
+			'description' => __( 'As many as fit the row, at roughly this width. Smaller means more per row.', 'acreage' ),
 		) );
 
 		$this->end_controls_section();
@@ -141,7 +190,22 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			);
 		}
 
-		echo '<div class="acreage-w-detail">';
+		/*
+		 * A PART WITH NOTHING TO SHOW HAS TO TAKE UP NO ROOM
+		 *
+		 * Every part here can legitimately be empty: a cattle farm has no
+		 * wildlife section, most farms have no video, and a farm whose position
+		 * has not been published has no map. The widget already prints nothing
+		 * in those cases — but the Elementor section holding it still draws its
+		 * own background, its top rule and its 160px of padding, so the visitor
+		 * gets an empty cream band that reads as a page half-loaded.
+		 *
+		 * The layout cannot know in advance which fields a given farm has
+		 * filled in, so the widget says so after the fact instead, and the
+		 * stylesheet folds the band away. Anything the part did print — the
+		 * editor notice included — keeps the band open.
+		 */
+		ob_start();
 
 		switch ( $settings['part'] ) {
 			case 'breadcrumb':
@@ -160,16 +224,20 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 				$this->render_price( $post_id );
 				break;
 			case 'description':
-				$this->render_html( apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) ) );
-				break;
 			case 'improvements':
 			case 'wildlife':
 			case 'land_claims':
 				$this->render_section( $post_id, $settings['part'], 'yes' === $settings['show_headings'] );
 				break;
 			case 'sections':
-				$this->render_html( apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) ) );
-				foreach ( array( 'improvements', 'wildlife', 'land_claims' ) as $section ) {
+				/*
+				 * The description is the first of the four, not a preamble to the
+				 * other three. In the comp it carries its own heading and its own
+				 * hairline, which is what makes the page read as one run of
+				 * sections rather than a block of prose that three labelled
+				 * fields were bolted onto.
+				 */
+				foreach ( array( 'description', 'improvements', 'wildlife', 'land_claims' ) as $section ) {
 					$this->render_section( $post_id, $section, 'yes' === $settings['show_headings'] );
 				}
 				break;
@@ -182,8 +250,19 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			case 'video':
 				$this->render_video( $post_id );
 				break;
+			case 'location':
+				$this->render_location( $post_id, $settings );
+				break;
 		}
 
+		$body = ob_get_clean();
+
+		printf(
+			'<div class="acreage-w-detail%s">',
+			'' === trim( $body ) ? ' acreage-w-detail--empty' : ''
+		);
+
+		echo $body; // phpcs:ignore WordPress.Security.EscapingOutput.OutputNotEscaped -- escaped as it was built.
 		echo '</div>';
 	}
 
@@ -193,6 +272,7 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 
 	private function section_label( $key ) {
 		$labels = array(
+			'description'  => __( 'Description', 'acreage' ),
 			'improvements' => __( 'Improvements', 'acreage' ),
 			'wildlife'     => __( 'Wildlife & vegetation', 'acreage' ),
 			'land_claims'  => __( 'Land claims', 'acreage' ),
@@ -201,8 +281,29 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 		return isset( $labels[ $key ] ) ? $labels[ $key ] : '';
 	}
 
+	/**
+	 * The written body of a section.
+	 *
+	 * The description is the post's own content; the other three are fields on
+	 * the farm. Reading them through one function is what lets the description
+	 * be laid out as a section like any other, which is how the comp has it —
+	 * four headings down the page with a hairline above each, not one
+	 * unannounced block of prose followed by three labelled ones.
+	 *
+	 * @param int    $post_id Farm.
+	 * @param string $key     Section key.
+	 * @return string Raw HTML, ready for the_content filters or wpautop.
+	 */
+	private function section_body( $post_id, $key ) {
+		if ( 'description' === $key ) {
+			return apply_filters( 'the_content', get_post_field( 'post_content', $post_id ) );
+		}
+
+		return wpautop( (string) get_post_meta( $post_id, 'acreage_' . $key, true ) );
+	}
+
 	private function render_section( $post_id, $key, $with_heading ) {
-		$value = get_post_meta( $post_id, 'acreage_' . $key, true );
+		$value = $this->section_body( $post_id, $key );
 
 		// A cattle farm has no wildlife section, and an empty heading with
 		// nothing under it looks like a fault rather than an omission.
@@ -210,11 +311,25 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			return;
 		}
 
+		/*
+		 * Each section is wrapped, so that it can carry the rule above it.
+		 *
+		 * The divider belongs to the section, not to the gap between two of
+		 * them: a border drawn on the heading alone disappears the moment a
+		 * heading is switched off, and a border on the gap has nothing to
+		 * attach to when a cattle farm skips the wildlife section entirely.
+		 * Hung on the section, the rules land in the right places whichever
+		 * fields this particular farm happens to have filled in.
+		 */
+		printf( '<section class="acreage-w-detail__section acreage-w-detail__section--%s">', esc_attr( str_replace( '_', '-', $key ) ) );
+
 		if ( $with_heading ) {
 			printf( '<h2 class="acreage-w-detail__heading">%s</h2>', esc_html( $this->section_label( $key ) ) );
 		}
 
-		$this->render_html( wpautop( $value ) );
+		$this->render_html( $value );
+
+		echo '</section>';
 	}
 
 	private function render_price( $post_id ) {
@@ -239,7 +354,7 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 					sprintf(
 						/* translators: %s: formatted price per hectare. */
 						__( 'R%s per hectare', 'acreage' ),
-						number_format_i18n( round( $price / $hectares ) )
+						Acreage_Core_Grid::number( round( $price / $hectares ) )
 					)
 				)
 			);
@@ -516,7 +631,76 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			return;
 		}
 
-		echo '<div class="acreage-w-gallery">';
+		$settings = $this->get_settings_for_display();
+		$size     = isset( $settings['thumb_size']['size'] ) ? (int) $settings['thumb_size']['size'] : 260;
+		$size     = max( self::MIN_THUMB, min( self::MAX_THUMB, $size ) );
+
+		/*
+		 * Printed inline rather than through the control's own selectors.
+		 *
+		 * This row was three fixed columns until now, and that rule lives in a
+		 * per-page stylesheet Elementor only rewrites when the page is next
+		 * saved. A stylesheet rule of ours would lose to the stale one on every
+		 * listing until someone opened and re-saved each page; an inline style
+		 * is right the moment the plugin updates.
+		 *
+		 * The min() is what keeps a phone sensible without a media query — which
+		 * an inline style could not be overridden by anyway. Capping the track
+		 * at half the row less half the gap means two thumbnails always fit,
+		 * whatever the size above says, so the row never degenerates into one
+		 * picture per line.
+		 */
+		printf(
+			'<div class="acreage-w-gallery" style="grid-template-columns:repeat(auto-fill,minmax(min(%dpx,calc(50%% - 5px)),1fr))">',
+			$size
+		);
+		/*
+		 * ONE SLIDESHOW, NOT SIX SEPARATE LINKS
+		 *
+		 * Naming every photograph into the same slideshow group is what turns a
+		 * row of links into a gallery: open any one of them and the lightbox
+		 * carries arrows, the arrow keys, a counter and swipe on a phone, with
+		 * the rest of the farm's photographs behind them. Opening the fourth
+		 * picture and finding no way to reach the fifth is the thing a visitor
+		 * looking at a farm minds most.
+		 *
+		 * The lightbox is Elementor's rather than one of ours, deliberately. It
+		 * is already on the page, it is already what every other image on the
+		 * site does, and a hand-rolled modal is a focus trap, a keyboard map and
+		 * a set of ARIA roles to get wrong. "yes" forces it on for these links
+		 * even on a site with the global image lightbox switched off, because
+		 * here it is the point of the row rather than a nicety.
+		 *
+		 * target="_blank" stays underneath as the fallback: with the lightbox
+		 * turned off in the widget, or with no JavaScript at all, a photograph
+		 * still opens.
+		 */
+		$slideshow = 'acreage-farm-' . (int) $post_id;
+		$lightbox  = 'yes' === $settings['lightbox'];
+		$farm      = get_the_title( $post_id );
+
+		if ( $lightbox ) {
+			/*
+			 * ASK FOR THE STYLESHEETS, BECAUSE NOBODY ELSE WILL
+			 *
+			 * Elementor loads its slideshow CSS only for pages where one of ITS
+			 * widgets declares that it needs it. These links are ours, written by
+			 * hand, so as far as Elementor's asset loader is concerned there is
+			 * no slideshow on this page and e-swiper never goes out.
+			 *
+			 * Everything then half-works, which is the worst way for it to fail:
+			 * the lightbox opens, the arrows exist and respond, but the one
+			 * declaration that makes them position:absolute lives in e-swiper, so
+			 * they lay out in flow as two full-height blocks under the picture.
+			 * That makes the scrolling box three screens tall, and the first
+			 * press of an arrow scrolls the photograph out of sight.
+			 *
+			 * e-swiper depends on swiper, so this one line covers both.
+			 */
+			wp_enqueue_style( 'e-swiper' );
+			wp_enqueue_style( 'e-lightbox' );
+		}
+
 		foreach ( $ids as $id ) {
 			$full  = wp_get_attachment_image_url( $id, 'full' );
 			$thumb = wp_get_attachment_image( $id, 'large', false, array( 'loading' => 'lazy' ) );
@@ -525,13 +709,88 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 				continue;
 			}
 
+			$attrs = '';
+
+			if ( $lightbox ) {
+				$caption = get_the_title( $id );
+
+				/*
+				 * No explicit index. Elementor works the position out from where
+				 * the link sits among its slideshow group, which is already the
+				 * order the client arranged the photographs in — and its index is
+				 * counted from zero, so stating one is a way to open the wrong
+				 * picture and nothing else.
+				 */
+				$attrs = sprintf(
+					' data-elementor-open-lightbox="yes" data-elementor-lightbox-slideshow="%1$s" data-elementor-lightbox-title="%2$s"',
+					esc_attr( $slideshow ),
+					esc_attr( $caption ? $caption : $farm )
+				);
+			}
+
 			printf(
-				'<a class="acreage-w-gallery__item" href="%s" target="_blank" rel="noopener">%s</a>',
+				'<a class="acreage-w-gallery__item" href="%1$s"%2$s target="_blank" rel="noopener">%3$s</a>',
 				esc_url( $full ),
+				$attrs, // phpcs:ignore WordPress.Security.EscapingOutput.OutputNotEscaped -- each part escaped above.
 				wp_kses_post( $thumb )
 			);
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * The Location band: a heading, the client's own note, and the map.
+	 *
+	 * THE MAP IS LAZY AND SANDBOXED
+	 *
+	 * An embedded map is a third-party frame that loads a megabyte of script
+	 * from Google, and it sits at the bottom of a long page most visitors never
+	 * scroll to. loading="lazy" means they only pay for it if they get there.
+	 *
+	 * A farm with no location set prints nothing at all — not an empty grey box
+	 * and not a map of the whole country, both of which read as a fault rather
+	 * than as an agent who has not published the position yet.
+	 *
+	 * @param int   $post_id  Farm.
+	 * @param array $settings Widget settings.
+	 */
+	private function render_location( $post_id, $settings ) {
+		$url = Acreage_Core_Query::map_url( $post_id );
+
+		if ( ! $url ) {
+			$this->editor_notice( __( 'This farm has no map location yet. Set one under "Map location" on the farm itself.', 'acreage' ) );
+			return;
+		}
+
+		$note = (string) get_post_meta( $post_id, 'acreage_directions', true );
+		?>
+		<section class="acreage-w-location">
+			<?php if ( 'yes' === $settings['show_headings'] && $settings['location_heading'] ) : ?>
+				<h2 class="acreage-w-detail__heading acreage-w-location__heading">
+					<?php echo esc_html( $settings['location_heading'] ); ?>
+				</h2>
+			<?php endif; ?>
+
+			<?php if ( '' !== trim( $note ) ) : ?>
+				<p class="acreage-w-location__note"><?php echo esc_html( $note ); ?></p>
+			<?php endif; ?>
+
+			<div class="acreage-w-location__map">
+				<iframe
+					src="<?php echo esc_url( $url ); ?>"
+					title="<?php
+					printf(
+						/* translators: %s: farm name. */
+						esc_attr__( 'Map showing roughly where %s is', 'acreage' ),
+						esc_attr( get_the_title( $post_id ) )
+					);
+					?>"
+					loading="lazy"
+					referrerpolicy="no-referrer-when-downgrade"
+					allowfullscreen></iframe>
+			</div>
+		</section>
+		<?php
 	}
 
 	private function render_video( $post_id ) {

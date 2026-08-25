@@ -57,27 +57,23 @@ abstract class Acreage_Widget_Base extends \Elementor\Widget_Base {
 		);
 	}
 
+	/*
+	 * Price and extent are the grid engine's, not copies of it.
+	 *
+	 * They were copies, and the copies grouped with commas while the engine
+	 * grouped with spaces — so the same farm read R28,500,000 on its own page
+	 * and R28 500 000 on the card that linked to it. One formatter, and the
+	 * "Price on application" wording only has one place to be changed.
+	 */
+
 	/** Price formatted the way the trade writes it. */
 	protected function price( $post_id ) {
-		$value = (float) get_post_meta( $post_id, 'acreage_price', true );
-
-		if ( $value <= 0 ) {
-			return __( 'Price on application', 'acreage' );
-		}
-
-		return 'R' . number_format_i18n( $value );
+		return Acreage_Core_Grid::price( $post_id );
 	}
 
 	/** Extent, or an empty string when it has not been recorded. */
 	protected function extent( $post_id ) {
-		$value = (float) get_post_meta( $post_id, 'acreage_hectares', true );
-
-		if ( $value <= 0 ) {
-			return '';
-		}
-
-		/* translators: %s: number of hectares. */
-		return sprintf( __( '%s ha', 'acreage' ), number_format_i18n( $value ) );
+		return Acreage_Core_Grid::extent( $post_id );
 	}
 
 	/** First term name of a taxonomy on a post. */

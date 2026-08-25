@@ -11,16 +11,17 @@ defined( 'ABSPATH' ) || exit;
 
 class Acreage_Core_Query {
 
-	/** Query var => taxonomy. */
+	/**
+	 * Query var => taxonomy.
+	 *
+	 * The list itself lives in Acreage_Core_Filters, which the panel and the
+	 * live-filter endpoint read too. Three copies of seven taxonomy names is
+	 * how an axis ends up honoured here and missing from the checkboxes.
+	 */
 	public function filters() {
-		return array(
-			'listing_category' => 'listing_category',
-			'province'         => 'province',
-			'region'           => 'region',
-			'size_band'        => 'size_band',
-			'price_band'       => 'price_band',
-			'status'           => 'status',
-			'species'          => 'species',
+		return array_combine(
+			Acreage_Core_Filters::taxonomies(),
+			Acreage_Core_Filters::taxonomies()
 		);
 	}
 
@@ -46,21 +47,8 @@ class Acreage_Core_Query {
 
 		$tax_query = array();
 
-		foreach ( $this->filters() as $param => $taxonomy ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public, read-only filtering.
-			if ( empty( $_GET[ $param ] ) ) {
-				continue;
-			}
-
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$raw   = wp_unslash( $_GET[ $param ] );
-			$terms = is_array( $raw ) ? $raw : explode( ',', $raw );
-			$terms = array_filter( array_map( 'sanitize_title', $terms ) );
-
-			if ( ! $terms ) {
-				continue;
-			}
-
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public, read-only filtering.
+		foreach ( Acreage_Core_Filters::read( $_GET ) as $taxonomy => $terms ) {
 			$tax_query[] = array(
 				'taxonomy' => $taxonomy,
 				'field'    => 'slug',
@@ -127,9 +115,83 @@ class Acreage_Core_Query {
 
 		return sprintf(
 			'<span class="acreage-price">R%1$s</span> <span class="acreage-price__vat">%2$s</span>',
-			esc_html( number_format_i18n( $price ) ),
+			esc_html( Acreage_Core_Grid::number( $price ) ),
 			esc_html__( 'Excludes VAT if applicable', 'acreage' )
 		);
+	}
+
+	/**
+	 * The map embed for a farm, or '' when no location has been set.
+	 *
+	 * NO API KEY, BY DEFAULT
+	 *
+	 * Google's documented Embed API needs a key, a Cloud project and a billing
+	 * account attached to it. That is a reasonable ask of an agency and an
+	 * unreasonable one of a farm agent who wants a map on a listing, and it is a
+	 * support burden for anyone who buys this theme. The keyless embed below
+	 * needs none of it and has been Google's public embed URL for well over a
+	 * decade.
+	 *
+	 * A site that would rather use the official API — for styling, or because
+	 * it already has a key — sets one through the filter and gets it.
+	 *
+	 * @param int $post_id Farm.
+	 * @return string Embed URL, or ''.
+	 */
+	public static function map_url( $post_id ) {
+		$place = trim( (string) get_post_meta( $post_id, 'acreage_map', true ) );
+
+		if ( '' === $place ) {
+			return '';
+		}
+
+		$zoom = (int) get_post_meta( $post_id, 'acreage_map_zoom', true );
+		$zoom = $zoom ? $zoom : Acreage_Core_Fields::MAP_ZOOM_DEFAULT;
+		$zoom = max( Acreage_Core_Fields::MAP_ZOOM_MIN, min( Acreage_Core_Fields::MAP_ZOOM_MAX, $zoom ) );
+
+		/**
+		 * Filter the Google Maps Embed API key.
+		 *
+		 * Empty — the default — uses the keyless embed instead.
+		 *
+		 * @param string $key     API key.
+		 * @param int    $post_id Farm being shown.
+		 */
+		$key = (string) apply_filters( 'acreage_map_api_key', '', $post_id );
+
+		if ( '' !== $key ) {
+			$url = add_query_arg(
+				array(
+					'key'  => rawurlencode( $key ),
+					'q'    => rawurlencode( $place ),
+					'zoom' => $zoom,
+				),
+				'https://www.google.com/maps/embed/v1/place'
+			);
+		} else {
+			$url = add_query_arg(
+				array(
+					'q'      => rawurlencode( $place ),
+					'z'      => $zoom,
+					'output' => 'embed',
+					'hl'     => rawurlencode( substr( get_locale(), 0, 2 ) ),
+				),
+				'https://maps.google.com/maps'
+			);
+		}
+
+		/**
+		 * Filter the finished map embed URL.
+		 *
+		 * The hook for swapping Google out entirely — OpenStreetMap, Mapbox, a
+		 * static image — without touching the widget that prints it.
+		 *
+		 * @param string $url     Embed URL.
+		 * @param int    $post_id Farm being shown.
+		 * @param string $place   What the client typed.
+		 * @param int    $zoom    Zoom level.
+		 */
+		return apply_filters( 'acreage_map_url', $url, $post_id, $place, $zoom );
 	}
 
 	/** Ordered gallery attachment IDs for a farm. */

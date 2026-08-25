@@ -20,36 +20,11 @@
 .acreage-w-empty{margin:0;padding:24px 0;opacity:.8;}
 
 /* ------------------------------------------------------------------- grid */
-.acreage-w-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;}
-.acreage-w-card{display:flex;flex-direction:column;min-width:0;}
-.acreage-w-card__media{
-  position:relative;display:block;overflow:hidden;aspect-ratio:3/2;
-  background:rgba(0,0,0,.06);margin-bottom:14px;
-}
-.acreage-w-card__media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .55s cubic-bezier(.2,.6,.2,1);}
-.acreage-w-card__media:hover img{transform:scale(1.04);}
-.acreage-w-card__placeholder{display:block;width:100%;height:100%;}
-.acreage-w-badge{
-  position:absolute;top:0;left:0;background:var(--acreage-w-accent);color:#fff;
-  font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
-  padding:6px 11px;
-}
-.acreage-w-card__where{
-  margin:0 0 4px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
-  font-weight:700;opacity:.65;
-}
-.acreage-w-card__title{margin:0 0 8px;font-size:1.25em;line-height:1.2;}
-.acreage-w-card__title a{text-decoration:none;color:inherit;}
-.acreage-w-card__title a:hover{color:var(--acreage-w-accent);}
-.acreage-w-card__excerpt{margin:0 0 10px;opacity:.8;font-size:.95em;}
-.acreage-w-card__facts{margin:0;font-weight:600;font-variant-numeric:tabular-nums;}
-.acreage-w-card__dot{opacity:.5;margin:0 .4em;}
-.acreage-w-card__vat{margin:3px 0 0;font-size:11px;letter-spacing:.04em;opacity:.6;}
-.acreage-w-card__more{
-  display:inline-block;margin-top:12px;font-size:11px;letter-spacing:.16em;
-  text-transform:uppercase;font-weight:700;color:var(--acreage-w-accent);text-decoration:none;
-}
-.acreage-w-card__more:hover{text-decoration:underline;text-underline-offset:.3em;}
+/* The card itself is specified in one place, at the end of this file, under
+   "THE APPROVED COMP". It used to be specified here as well, and then twice
+   more further down — four passes stacked on top of each other, each one only
+   partly overriding the last, so what a card actually looked like depended on
+   which rule happened to win. One block now, and this is not it. */
 
 /* ----------------------------------------------------------------- search */
 .acreage-w-search{padding:24px;}
@@ -156,6 +131,24 @@
    it instead of sitting at content width. */
 .acreage-w-filters__submit{width:100%;}
 
+/* --- live filtering ------------------------------------------------------
+   Once the script has a grid to drive, Apply has nothing left to do: the farms
+   changed the moment the box was ticked, and a button that does nothing is
+   worse than no button. The row goes rather than the button alone, because the
+   "Clear 2 filters" link beside it is the same offer as Clear all in the chip
+   bar above. Both only ever disappear AFTER the script has bound, so a visitor
+   with no JavaScript keeps the form intact. */
+.acreage-w-filters.is-live .acreage-w-filters__actions{display:none;}
+
+/* How many farms the current combination found. Sits under the chip bar, where
+   the reason for a short list already is, and stays quiet enough to read as a
+   caption rather than a result banner. */
+.acreage-w-filters__result{
+  margin:0 0 18px;font-size:13px;
+  color:var(--acreage-stone,#8A8172);
+  font-variant-numeric:tabular-nums;
+}
+
 /* ------------------------------------------------------------------ tiles */
 .acreage-w-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;}
 .acreage-w-tile{
@@ -184,9 +177,84 @@
 }
 
 /* ----------------------------------------------------------------- detail */
-.acreage-w-detail__heading{margin:1.6em 0 .5em;font-size:1.3em;}
-.acreage-w-detail__heading:first-child{margin-top:0;}
+/* --- the written sections ------------------------------------------------
+   Improvements, Wildlife & vegetation, Land claims. From the listing comp:
+   a hairline above each one, generous air around it, and the heading in the
+   serif — the same face as the farm name in the hero and on every card.
+
+   The sans headings these replace made the sections read as form labels over
+   form fields. These are the parts of the page an interested buyer actually
+   reads, and the serif is what says so. */
+.acreage-w-detail__section{
+  border-top:1px solid var(--acreage-rule,#DED5C0);
+  padding:clamp(26px,3vw,40px) 0;
+}
+/* Nothing follows the last one, so it should not reserve room for it. */
+.acreage-w-detail__section:last-child{padding-bottom:0;}
+
+.acreage-w-detail__heading{
+  font-family:var(--acreage-serif,Georgia,"Times New Roman",serif);
+  font-weight:400;
+  font-size:clamp(22px,2.4vw,30px);
+  line-height:1.2;
+  letter-spacing:0;
+  margin:0 0 16px;
+  color:var(--acreage-moss-deep,#232B18);
+}
 .acreage-w-prose > *:first-child{margin-top:0;}
+.acreage-w-prose > *:last-child{margin-bottom:0;}
+
+/* The written body, to the comp: 16/1.75 in a softer grey than the page ink,
+   and — the part that matters most — a measure. The column these sit in is
+   over 800px wide, which at full bleed is about ninety-five characters a line;
+   the eye loses its place on the way back to the left margin. 62ch is the
+   comp's figure and lands around seventy. */
+.acreage-w-detail__section .acreage-w-prose{
+  font-size:16px;
+  line-height:1.75;
+  color:#5A5F52;
+  max-width:62ch;
+}
+.acreage-w-detail__section .acreage-w-prose p{margin:0 0 14px;text-wrap:pretty;}
+
+/* --- a part with nothing to show -----------------------------------------
+   The widget prints nothing for a farm that has no video, no wildlife section
+   or no map, but the Elementor section around it still draws its background,
+   its rule and its padding. These fold that away.
+
+   Two rules, because there are two cases and only one of them is the section's
+   to answer for: the widget itself always collapses, and the whole band
+   collapses only when that widget was the only thing in it. A band holding
+   other widgets keeps its shape — hiding it would take those with it. */
+.elementor-widget:has(> .elementor-widget-container > .acreage-w-detail--empty){display:none;}
+.elementor-section:has(> .elementor-container > .elementor-column > .elementor-widget-wrap > .elementor-widget:only-child > .elementor-widget-container > .acreage-w-detail--empty){display:none;}
+
+/* --- the location band ---------------------------------------------------
+   From the listing comp: the serif heading, a short written note about where
+   the farm is, and the map under it. The band's own background and padding are
+   left to whichever Elementor section it is dropped into — the widget draws
+   its contents, the page draws the band. */
+.acreage-w-location__heading{margin-bottom:8px;}
+.acreage-w-location__note{
+  margin:0 0 24px;
+  font-size:15px;line-height:1.6;
+  color:#5F6553;
+  max-width:56ch;
+  text-wrap:pretty;
+}
+/* The frame is sized here rather than on the iframe, so a map that is slow to
+   arrive still holds its space and the page below it does not jump. */
+.acreage-w-location__map{
+  position:relative;
+  height:var(--acreage-w-map-h,clamp(220px,30vw,420px));
+  background:#E4DCCA;
+  border:1px solid var(--acreage-rule,#DED5C0);
+}
+.acreage-w-location__map iframe{
+  display:block;width:100%;height:100%;border:0;
+  /* Google's tiles run warm against this palette; the comp pulls them back. */
+  filter:saturate(.9);
+}
 .acreage-w-price{margin:0;font-size:1.6em;font-weight:600;font-variant-numeric:tabular-nums;}
 .acreage-w-price .acreage-price__vat{display:block;font-size:11px;font-weight:400;letter-spacing:.06em;opacity:.6;margin-top:4px;}
 
@@ -208,7 +276,13 @@
 }
 .acreage-w-species__chip:hover{border-color:var(--acreage-w-accent);color:var(--acreage-w-accent);}
 
-.acreage-w-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+/* A row of thumbnails under the hero, not a second grid of full-size pictures.
+   The widget prints the track size inline from its "Photograph size" control;
+   this is the fallback for a gallery rendered without it. auto-FILL, not
+   auto-fit: with three photographs the empty tracks stay empty and the
+   thumbnails keep their size, instead of three images stretching to fill the
+   width and undoing the whole point. */
+.acreage-w-gallery{grid-template-columns:repeat(auto-fill,minmax(min(260px,calc(50% - 5px)),1fr));gap:10px;}
 .acreage-w-gallery__item{display:block;overflow:hidden;aspect-ratio:3/2;background:rgba(0,0,0,.06);}
 .acreage-w-gallery__item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.6,.2,1);}
 .acreage-w-gallery__item:hover img{transform:scale(1.05);}
@@ -267,13 +341,14 @@
   .acreage-w-cats,
   .acreage-w-search__fields{grid-template-columns:1fr;}
   .acreage-w-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .acreage-w-gallery{grid-template-columns:repeat(2,minmax(0,1fr));}
+  /* The gallery needs no rule here: its track size is capped at half the row,
+     so two thumbnails fit at any width on their own. */
 }
 @media (prefers-reduced-motion:reduce){
   .acreage-w-card__media img,
   .acreage-w-cat__media img,
   .acreage-w-gallery__item img{transition:none;}
-  .acreage-w-card__media:hover img,
+  .acreage-w-card:hover .acreage-w-card__media img,
   .acreage-w-cat:hover .acreage-w-cat__media img,
   .acreage-w-gallery__item:hover img{transform:none;}
 }
@@ -351,10 +426,6 @@
 @media (max-width:900px){
   .acreage-w-grid--scroll{grid-auto-columns:minmax(260px,78%);}
 }
-
-/* Status badge variants. Sold and off-market must not read as "available". */
-.acreage-w-badge--sold,
-.acreage-w-badge--off-market{background:var(--acreage-stone,#665F52);}
 
 /* =========================================================== site nav widget */
 /* One row above --acreage-nav-bp, a burger below it. The breakpoint is set
@@ -478,62 +549,6 @@ body.acreage-nav-open{overflow:hidden;}
    grid-template-columns rule per breakpoint. These rules handle everything the
    control cannot: card internals, the scroller, tabs and touch targets. */
 
-/* --- cards -------------------------------------------------------------- */
-.acreage-w-card{
-  display:flex;flex-direction:column;
-  background:#fff;
-  border:1px solid var(--acreage-rule,#DED5C0);
-  overflow:hidden;
-  transition:transform 220ms ease, box-shadow 220ms ease;
-}
-.acreage-w-card:hover{
-  transform:translateY(-4px);
-  box-shadow:0 22px 44px -28px rgba(28,34,18,.55);
-}
-.acreage-w-card__media{
-  display:block;position:relative;
-  aspect-ratio:3/2;                 /* stops the grid jumping as images load */
-  overflow:hidden;background:var(--acreage-panel,#EFE9DA);
-}
-.acreage-w-card__media img{
-  width:100%;height:100%;object-fit:cover;display:block;
-  transition:transform 600ms cubic-bezier(.2,.7,.2,1);
-}
-.acreage-w-card:hover .acreage-w-card__media img{transform:scale(1.04);}
-.acreage-w-card__body{
-  display:flex;flex-direction:column;gap:6px;
-  padding:clamp(16px,2vw,22px);flex:1 1 auto;
-}
-.acreage-w-card__where{
-  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--acreage-stone,#665F52);margin:0;
-}
-.acreage-w-card__title{
-  font-family:var(--acreage-serif,Georgia,serif);font-weight:400;
-  font-size:clamp(17px,1.5vw,20px);line-height:1.25;margin:0;
-}
-.acreage-w-card__title a{color:var(--acreage-moss,#354027);text-decoration:none;}
-.acreage-w-card__excerpt{
-  font-size:14px;line-height:1.55;color:var(--acreage-ink-soft,#3C4A3F);margin:2px 0 0;
-}
-.acreage-w-card__facts{
-  display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;
-  margin:10px 0 0;font-size:15px;
-}
-.acreage-w-card__price{font-weight:700;color:var(--acreage-ink,#1F2A21);}
-.acreage-w-card__vat{font-size:11px;color:var(--acreage-stone,#665F52);margin:2px 0 0;}
-.acreage-w-card__more{
-  margin-top:auto;padding-top:14px;
-  font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
-  color:var(--acreage-w-accent,var(--acreage-sienna,#8F5A1E));text-decoration:none;
-}
-.acreage-w-badge{
-  position:absolute;top:12px;left:12px;z-index:2;
-  background:var(--acreage-w-accent,var(--acreage-sienna,#8F5A1E));color:#fff;
-  font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
-  padding:6px 11px;
-}
-
 /* --- the sideways scroller --------------------------------------------- */
 /* It was colliding on narrow screens because the track kept desktop column
    sizing. Give it its own sizing and let the cards breathe. */
@@ -562,7 +577,8 @@ body.acreage-nav-open{overflow:hidden;}
 @media (pointer:coarse){
   .acreage-w-tab,
   .acreage-w-more__btn,
-  .acreage-w-card__more{min-height:44px;display:inline-flex;align-items:center;}
+  .acreage-w-card__more,
+  .acreage-w-card__enquire{min-height:44px;display:inline-flex;align-items:center;}
 }
 
 /* --- category cards ----------------------------------------------------- */
@@ -585,57 +601,8 @@ body.acreage-nav-open{overflow:hidden;}
   .acreage-w-card:hover .acreage-w-card__media img{transform:none;}
 }
 
-/* ================================================ reference card treatment */
-/* The reference card is deliberately flat: no border, no radius, no shadow, a
-   4:3 photograph, and the price as the loudest thing in the body. Our bordered,
-   shadowed, lifting card is the single biggest reason the two sites read
-   differently at a glance, so it is replaced rather than tweaked. */
-.acreage-w-card{
-  background:transparent;
-  border:0;
-  border-radius:0;
-  box-shadow:none;
-  transition:none;
-}
-.acreage-w-card:hover{transform:none;box-shadow:none;}
-
-.acreage-w-card__media{
-  aspect-ratio:4/3;
-  border-radius:0;
-  background:var(--acreage-panel,#EFE9DA);
-}
-
-.acreage-w-card__body{
-  padding:14px 0 0;
-  gap:4px;
-}
-
-.acreage-w-card__title{
-  font-size:16px;
-  font-weight:500;
-  line-height:1.35;
-  letter-spacing:0;
-  order:2;
-}
-.acreage-w-card__where{order:1;font-size:11px;letter-spacing:.12em;}
-.acreage-w-card__excerpt{order:3;font-size:14px;color:var(--acreage-stone,#665F52);}
-.acreage-w-card__facts{
-  order:4;margin-top:8px;font-size:18px;font-weight:600;
-  color:var(--acreage-moss,#354027);
-}
-.acreage-w-card__price{font-size:18px;font-weight:600;}
-.acreage-w-card__extent{font-size:14px;font-weight:400;color:var(--acreage-stone,#665F52);}
-.acreage-w-card__vat{order:5;}
-.acreage-w-card__more{order:6;padding-top:10px;}
-
-/* Badge sits tight to the image corner, squared off like the reference. */
-.acreage-w-badge{top:0;left:0;border-radius:0;padding:7px 12px;font-size:10px;}
-
-/* Sections breathe on the same rhythm as the reference: ~70px vertical. */
+/* Sections breathe on the same rhythm as the comp: ~70px vertical. */
 .acreage-w-tabs{margin-bottom:30px;}
-
-/* Grid gap matches the reference's tighter 30px gutter. */
-.acreage-w-grid{gap:30px;}
 
 /* ============================================== header on the content grid */
 /* The bar was capped at 1440 with its own 72px gutter, while the hero content
@@ -675,18 +642,24 @@ body.acreage-nav-open{overflow:hidden;}
 }
 
 /* ============================================ THE APPROVED COMP — card spec */
-/* Values taken directly from "Africa Game Farms Homepage.dc.html". An earlier
-   pass flattened these cards to match a different reference; the comp is the
-   design that was signed off, so it wins.
+/* Every value below is measured from the Loop Item in "Africa Game Farms
+   Homepage.dc.html" and "Farms for Sale.dc.html" — one card design, shared by
+   the homepage band and the archive, exactly as the comp's build note asks.
+   This is the ONLY place the card is specified. Three earlier passes each
+   redefined it further up this file; they have been removed, because a card
+   whose appearance depends on which of four blocks wins is a card nobody can
+   change safely.
 
-   Bordered, raised surface, ochre border on hover with a small lift and a slow
-   image push. Serif title. The VAT line is part of the card, not an afterthought
-   — the brief lists it as a non-negotiable. */
+   Bordered, raised surface on paper white, ochre border on hover with a small
+   lift and a slow image push. Serif title. The VAT line is part of the card,
+   not an afterthought — the brief lists it as a non-negotiable. */
 .acreage-w-card{
+  display:flex;flex-direction:column;min-width:0;
   background:#FCFAF2;
   border:1px solid var(--acreage-rule,#DED5C0);
   border-radius:0;
   box-shadow:none;
+  overflow:hidden;
   transition:box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
 }
 .acreage-w-card:hover{
@@ -694,56 +667,179 @@ body.acreage-nav-open{overflow:hidden;}
   border-color:var(--acreage-sienna,#9C6423);
   transform:translateY(-3px);
 }
+
+/* --- the photograph ----------------------------------------------------- */
 .acreage-w-card__media{
-  aspect-ratio:3/2;
+  display:block;position:relative;
+  aspect-ratio:3/2;                 /* stops the grid jumping as images load */
+  overflow:hidden;
   background:#E4DCCA;
 }
-.acreage-w-card__media img{transition:transform 600ms cubic-bezier(.2,.7,.2,1);}
+.acreage-w-card__media img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform 600ms cubic-bezier(.2,.7,.2,1);
+}
 .acreage-w-card:hover .acreage-w-card__media img{transform:scale(1.06);}
+.acreage-w-card__placeholder{display:block;width:100%;height:100%;}
 
+/* --- the body ----------------------------------------------------------- */
+/* A flex column with a 12px rhythm. Nothing is positioned by order: the markup
+   comes out of PHP in the comp's order already, so a switched-off line simply
+   is not there and the card closes up around the gap. */
 .acreage-w-card__body{
+  display:flex;flex-direction:column;gap:12px;
   padding:22px 22px 24px;
-  gap:12px;
+  flex:1 1 auto;
 }
+
+/* "Game · Waterberg, Limpopo" */
 .acreage-w-card__where{
+  display:flex;flex-wrap:wrap;gap:8px;margin:0;
   font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--acreage-stone,#8A8172);order:1;
+  color:var(--acreage-stone,#8A8172);
 }
+.acreage-w-card__dot{opacity:.85;}
+
 .acreage-w-card__title{
-  font-family:var(--acreage-serif,Georgia,serif);
-  font-weight:400;font-size:22px;line-height:1.2;letter-spacing:0;
-  order:2;
+  font-family:var(--acreage-serif,Georgia,"Times New Roman",serif);
+  font-weight:400;font-size:22px;line-height:1.2;letter-spacing:0;margin:0;
 }
-.acreage-w-card__title a{color:var(--acreage-dark,#232B18);}
-.acreage-w-card__facts{
-  order:3;margin:0;font-size:20px;letter-spacing:.01em;
-  color:var(--acreage-moss,#354027);font-weight:400;
+.acreage-w-card__title a{color:var(--acreage-moss-deep,#232B18);text-decoration:none;}
+.acreage-w-card__title a:hover{color:var(--acreage-sienna,#9C6423);}
+
+/* The price sits on its own line with the VAT note directly under it — they
+   are one statement, which is why the gap between them is 4px and not 12. */
+.acreage-w-card__facts{margin:0;}
+.acreage-w-card__price{
+  font-size:20px;font-weight:400;letter-spacing:.01em;
+  color:var(--acreage-moss,#354027);
+  font-variant-numeric:tabular-nums;
 }
-.acreage-w-card__price{font-size:20px;font-weight:400;}
-.acreage-w-card__extent{font-size:13px;color:var(--acreage-muted,#6E7566);}
 .acreage-w-card__vat{
-  order:4;font-size:11px;color:var(--acreage-stone,#8A8172);margin:4px 0 0;
+  margin:-8px 0 0;                  /* pulls up against the 12px body gap */
+  font-size:11px;color:var(--acreage-stone,#8A8172);
 }
 .acreage-w-card__excerpt{
-  order:5;font-size:14px;line-height:1.6;color:#5A5F52;margin:0;
+  margin:0;font-size:14px;line-height:1.6;color:#5A5F52;
+  text-wrap:pretty;
 }
-.acreage-w-card__more{
-  order:6;margin-top:auto;padding-top:16px;
+
+/* --- the last row ------------------------------------------------------- */
+/* The rule separates the farm's own facts from the two things you can do about
+   it. margin-top:auto is what makes a row of cards line their footers up even
+   when the summaries run to different lengths. */
+.acreage-w-card__foot{
+  display:flex;flex-wrap:wrap;gap:8px 18px;
+  align-items:center;justify-content:space-between;
+  margin-top:auto;padding-top:16px;
   border-top:1px solid #E4DED1;
+}
+.acreage-w-card__extent{
+  font-size:13px;color:var(--acreage-moss-light,#6E7566);
+  font-variant-numeric:tabular-nums;
+}
+.acreage-w-card__links{
+  display:flex;gap:14px;
   font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--acreage-moss,#354027);
 }
+/* Both links are underlined in the comp with a rule a shade lighter than the
+   text, which is a border rather than text-decoration so the offset is exact. */
+.acreage-w-card__more,
+.acreage-w-card__enquire{
+  text-decoration:none;padding-bottom:2px;
+  border-bottom:1px solid;
+  transition:color 180ms ease, border-color 180ms ease;
+}
+.acreage-w-card__more{color:var(--acreage-moss,#354027);border-bottom-color:#C9C1B0;}
+.acreage-w-card__enquire{color:var(--acreage-sienna,#9C6423);border-bottom-color:#DCC9B6;}
+.acreage-w-card__more:hover{color:var(--acreage-sienna,#9C6423);border-bottom-color:currentColor;}
+.acreage-w-card__enquire:hover{color:var(--acreage-moss,#354027);border-bottom-color:currentColor;}
 
-/* The badge sits inset from the corner in the comp, not flush to it. */
+/* --- the status badge --------------------------------------------------- */
+/* Inset from the corner, not flush to it. The default is the quiet one: a farm
+   with no status term still says something, because "no badge" reads as an
+   unfinished card rather than as a farm that is simply for sale. */
 .acreage-w-badge{
-  top:14px;left:14px;padding:7px 11px;
-  font-size:10px;letter-spacing:.14em;
+  position:absolute;top:14px;left:14px;z-index:2;
+  padding:7px 11px;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;
+  background:#EFE9DA;color:#5F6553;
 }
+.acreage-w-badge--new-listing{background:var(--acreage-moss,#354027);color:#F2F0E6;}
+.acreage-w-badge--big-five{background:var(--acreage-sienna,#9C6423);color:#FBF6EF;}
+.acreage-w-badge--off-market{background:#4C5142;color:#F7F6EF;}
+.acreage-w-badge--sold{background:#AFA894;color:#FCFAF2;}
 
-/* Comp grid: auto-fill at a 300px minimum, not a fixed column count. */
+/* --- sold ---------------------------------------------------------------- */
+/* A sold farm stays on the site — it is proof the agent sells farms — but it
+   must not read as available. The photograph loses most of its colour and the
+   two loudest lines step back. Nothing is hidden: the price of a sold farm is
+   the most interesting number on the page to the next seller. */
+.acreage-w-card--sold .acreage-w-card__media img{filter:grayscale(.75) brightness(1.04);}
+.acreage-w-card--sold .acreage-w-card__title a{color:var(--acreage-stone,#8A8172);}
+.acreage-w-card--sold .acreage-w-card__price{color:#9C9384;}
+
+/* Comp grid: auto-fill at a 300px minimum, not a fixed column count. The
+   results page overrides the minimum inline — see Acreage_Widget_Farm_Grid. */
 .acreage-w-grid{
   grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
   gap:clamp(18px,2vw,32px);
+}
+
+/* ==================================== THE APPROVED COMP — results bar spec */
+/* "Farms for Sale.dc.html": a rule-bottomed row above the grid with what
+   matched on the left and the sort on the right. It reads as a caption for the
+   results rather than as a second toolbar, which is why there is no fill, no
+   box and no button competing with the filter panel's own. */
+.acreage-w-results{
+  display:flex;flex-wrap:wrap;gap:14px 24px;
+  align-items:center;justify-content:space-between;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--acreage-rule,#DED5C0);
+  margin-bottom:clamp(18px,2.2vw,28px);
+}
+.acreage-w-results__count{
+  margin:0;font-size:14px;color:#5F6553;
+  font-variant-numeric:tabular-nums;
+}
+.acreage-w-results__sort{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.acreage-w-results__label{
+  font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--acreage-moss-light,#6E7566);
+}
+/* The comp's box. The arrow it draws is at the end of this file, shared with
+   the hero search fields — the comp removes the native one and puts nothing
+   back, which leaves a control that does not look like one. */
+.acreage-w-results__select{
+  background:#FCFAF2;
+  border:1px solid #C9C1B0;
+  border-radius:0;
+  color:var(--acreage-ink,#1F2A21);
+  font:inherit;font-size:14px;letter-spacing:0;text-transform:none;
+  padding:11px 14px;
+  min-height:44px;                  /* a comfortable target on a phone */
+}
+.acreage-w-results__select:focus-visible{
+  outline:2px solid var(--acreage-moss,#354027);outline-offset:1px;
+}
+/* Only ever rendered inside <noscript>, for a visitor whose browser cannot
+   reorder the farms in place. With a script running there is no button at all:
+   changing the select IS the action. */
+.acreage-w-results__go{
+  cursor:pointer;
+  background:none;
+  border:1px solid var(--acreage-moss,#354027);
+  color:var(--acreage-moss,#354027);
+  font:inherit;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  padding:0 16px;min-height:44px;
+}
+.acreage-w-results__go:hover{background:var(--acreage-moss,#354027);color:#F7F5EF;}
+
+@media (max-width:600px){
+  /* On a phone the row stacks, and a full-width select is easier to hit than
+     one squeezed beside its label. */
+  .acreage-w-results__sort{width:100%;}
+  .acreage-w-results__select{flex:1 1 auto;min-width:0;}
 }
 
 /* ======================================== search panel — the comp spec */
@@ -1122,3 +1218,51 @@ body.acreage-nav-open{overflow:hidden;}
 		transition: none;
 	}
 }
+
+/* ============================================================ select arrow */
+/* Every select in the comp is set to appearance:none and given nothing in
+   place of the arrow it removes. On screen that is two different faults: the
+   sort control keeps the browser's own arrow crammed against its right border
+   because a native arrow ignores padding, and the five hero search fields end
+   up with no arrow at all — five boxes that do not look like controls.
+ 
+   So the arrow is drawn here instead: one chevron, inset to match each field's
+   own horizontal padding, with room reserved for it so no option label can
+   ever run underneath. Drawn rather than native because a native arrow's
+   position cannot be set, and it lands differently in every browser.
+ 
+   It is a background image rather than a pseudo-element because a select
+   cannot have one. */
+.acreage-w-results__select,
+.acreage-w-search__select{
+  /* Without this the browser keeps its own arrow and draws ours beside it. */
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%23354027' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-size:11px 7px;
+  cursor:pointer;
+}
+
+/* The inset matches the padding on the other side, so the chevron sits on the
+   same margin as the text rather than floating at an arbitrary distance. */
+.acreage-w-results__select{
+  background-position:right 14px center;
+  padding-right:40px;
+}
+.acreage-w-search__select{
+  background-position:right 12px center;
+  padding-right:36px;
+}
+
+/* Old Edge drew a second arrow of its own beside ours. */
+.acreage-w-results__select::-ms-expand,
+.acreage-w-search__select::-ms-expand{display:none;}
+
+@media (prefers-reduced-motion:no-preference){
+  .acreage-w-results__select,
+  .acreage-w-search__select{transition:border-color 160ms ease;}
+}
+.acreage-w-results__select:hover,
+.acreage-w-search__select:hover{border-color:var(--acreage-moss,#354027);}

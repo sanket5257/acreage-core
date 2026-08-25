@@ -65,6 +65,18 @@ class Acreage_Core_Elementor {
 			ACREAGE_CORE_VERSION,
 			true
 		);
+
+		/*
+		 * The live filter. Enqueued by the Farm Filters panel, which is the only
+		 * thing that can drive it — and which is on one page of the site.
+		 */
+		wp_register_script(
+			'acreage-filters',
+			ACREAGE_CORE_URL . 'assets/js/filters.js',
+			array(),
+			ACREAGE_CORE_VERSION,
+			true
+		);
 	}
 
 	public function register_widgets( $manager ) {

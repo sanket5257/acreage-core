@@ -32,8 +32,28 @@ class Acreage_Core_Fields {
 				'url',
 				__( 'Paste the normal watch link. The video embeds itself.', 'acreage' ),
 			),
+			'acreage_map'      => array(
+				__( 'Map location', 'acreage' ),
+				'text',
+				__( 'A town, a district, or co-ordinates as "-24.1234, 28.5678". Leave empty and no map is shown.', 'acreage' ),
+			),
 		);
 	}
+
+	/**
+	 * How closely the map is drawn.
+	 *
+	 * DEFAULTS TO THE DISTRICT, NOT THE FARM GATE
+	 *
+	 * A seller will often not have the exact position published, and the comp
+	 * says as much on the page — "exact co-ordinates on request". So the
+	 * starting zoom shows the area a buyer needs in order to place the farm in
+	 * the country, and going closer than that is a decision the client makes
+	 * farm by farm rather than the default doing it for them.
+	 */
+	const MAP_ZOOM_DEFAULT = 9;
+	const MAP_ZOOM_MIN     = 3;
+	const MAP_ZOOM_MAX     = 18;
 
 	/** The four labelled sections from the current site. */
 	public function section_fields() {
@@ -131,6 +151,50 @@ class Acreage_Core_Fields {
 					<span class="acreage-field__hint"><?php echo esc_html( $hint ); ?></span>
 				</p>
 			<?php endforeach; ?>
+
+			<?php
+			/*
+			 * The two that go with the map location above it. Kept out of
+			 * simple_fields() because one is a select and the other a textarea,
+			 * and bending that loop to cover three input types would cost more
+			 * than writing them out.
+			 */
+			$acreage_zoom = (int) get_post_meta( $post->ID, 'acreage_map_zoom', true );
+			$acreage_zoom = $acreage_zoom ? $acreage_zoom : self::MAP_ZOOM_DEFAULT;
+			?>
+			<p class="acreage-field">
+				<label class="acreage-field__label" for="acreage_map_zoom"><?php esc_html_e( 'How close the map sits', 'acreage' ); ?></label>
+				<input
+					class="acreage-field__input"
+					type="number"
+					id="acreage_map_zoom"
+					name="acreage_map_zoom"
+					min="<?php echo esc_attr( self::MAP_ZOOM_MIN ); ?>"
+					max="<?php echo esc_attr( self::MAP_ZOOM_MAX ); ?>"
+					step="1"
+					value="<?php echo esc_attr( $acreage_zoom ); ?>">
+				<span class="acreage-field__hint">
+					<?php
+					printf(
+						/* translators: %d: the default zoom level. */
+						esc_html__( '%d shows the district, which is the usual choice. Higher goes closer; 15 and above shows individual roads and buildings.', 'acreage' ),
+						(int) self::MAP_ZOOM_DEFAULT
+					);
+					?>
+				</span>
+			</p>
+
+			<p class="acreage-field">
+				<label class="acreage-field__label" for="acreage_directions"><?php esc_html_e( 'Getting there', 'acreage' ); ?></label>
+				<textarea
+					class="acreage-field__input"
+					id="acreage_directions"
+					name="acreage_directions"
+					rows="2"><?php echo esc_textarea( get_post_meta( $post->ID, 'acreage_directions', true ) ); ?></textarea>
+				<span class="acreage-field__hint">
+					<?php esc_html_e( 'A line above the map, in your own words — "Roughly 45 minutes from Vaalwater, three and a half hours from Johannesburg. Exact co-ordinates on request."', 'acreage' ); ?>
+				</span>
+			</p>
 
 			<p class="acreage-field acreage-field--check">
 				<label for="acreage_big_five">
@@ -238,6 +302,24 @@ class Acreage_Core_Fields {
 
 		$youtube = isset( $_POST['acreage_youtube'] ) ? esc_url_raw( wp_unslash( $_POST['acreage_youtube'] ) ) : '';
 		$this->put( $post_id, 'acreage_youtube', $youtube );
+
+		// Where it is. The location is free text because it is handed to a map
+		// service as a search — a town, a district or a pair of co-ordinates.
+		$map = isset( $_POST['acreage_map'] ) ? sanitize_text_field( wp_unslash( $_POST['acreage_map'] ) ) : '';
+		$this->put( $post_id, 'acreage_map', $map );
+
+		/*
+		 * An emptied zoom box means "whatever you think", not "zoom all the way
+		 * out". Clamping a 0 straight into range would answer it with 3, which
+		 * is most of southern Africa in one frame.
+		 */
+		$zoom = isset( $_POST['acreage_map_zoom'] ) ? (int) $_POST['acreage_map_zoom'] : 0;
+		$zoom = $zoom > 0 ? $zoom : self::MAP_ZOOM_DEFAULT;
+		$zoom = max( self::MAP_ZOOM_MIN, min( self::MAP_ZOOM_MAX, $zoom ) );
+		$this->put( $post_id, 'acreage_map_zoom', (string) $zoom );
+
+		$directions = isset( $_POST['acreage_directions'] ) ? sanitize_textarea_field( wp_unslash( $_POST['acreage_directions'] ) ) : '';
+		$this->put( $post_id, 'acreage_directions', $directions );
 
 		$this->put( $post_id, 'acreage_big_five', isset( $_POST['acreage_big_five'] ) ? '1' : '' );
 		$this->put( $post_id, 'acreage_featured', isset( $_POST['acreage_featured'] ) ? '1' : '' );

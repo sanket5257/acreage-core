@@ -36,6 +36,7 @@ if ( ! defined( 'ACREAGE_CORE_GITHUB_REPO' ) ) {
 
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-post-types.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-fields.php';
+require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-filters.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-query.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-enquiries.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-admin.php';
