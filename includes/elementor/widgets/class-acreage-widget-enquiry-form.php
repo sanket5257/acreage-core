@@ -105,9 +105,19 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		) );
 
 		$this->add_control( 'button_bg', array(
+			/*
+			 * Sets the button VARIABLE, not the background.
+			 *
+			 * Elementor writes a control's selectors into a per-page stylesheet
+			 * at very high specificity — .elementor-1516 .elementor-element-11bc242
+			 * .acreage-w-search__submit — which beat the theme's own :hover rule
+			 * and left this button with no hover state at all. Feeding the
+			 * contract instead means a per-instance colour still flows through
+			 * everything else, hover and border included.
+			 */
 			'label'     => __( 'Button colour', 'acreage' ),
 			'type'      => \Elementor\Controls_Manager::COLOR,
-			'selectors' => array( '{{WRAPPER}} .acreage-w-form__submit' => 'background:{{VALUE}};' ),
+			'selectors' => array( '{{WRAPPER}}' => '--acreage-btn-bg:{{VALUE}};' ),
 		) );
 
 		$this->end_controls_section();
@@ -231,7 +241,7 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 		$sent     = isset( $_GET['acreage-sent'] ) && '1' === $_GET['acreage-sent']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$failed   = isset( $_GET['acreage-sent'] ) && '0' === $_GET['acreage-sent']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		?>
-		<div class="acreage-w-form">
+		<div class="acreage-w-form" id="acreage-enquire">
 			<?php if ( $settings['heading'] ) : ?>
 				<h2 class="acreage-w-form__heading"><?php echo esc_html( $settings['heading'] ); ?></h2>
 			<?php endif; ?>
@@ -330,7 +340,7 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 			return false;
 		}
 		?>
-		<div class="acreage-w-form acreage-w-form--plugin">
+		<div class="acreage-w-form acreage-w-form--plugin" id="acreage-enquire">
 			<?php if ( ! empty( $settings['heading'] ) ) : ?>
 				<h2 class="acreage-w-form__heading"><?php echo esc_html( $settings['heading'] ); ?></h2>
 			<?php endif; ?>

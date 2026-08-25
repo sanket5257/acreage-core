@@ -66,14 +66,78 @@
   border-radius:0;font:inherit;
 }
 .acreage-w-search__actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+/* Search, filter and enquiry buttons all read the theme's button contract,
+   so they are identical to the page buttons rather than three near-misses. */
 .acreage-w-search__submit,
 .acreage-w-filters__submit{
-  border:0;cursor:pointer;background:var(--acreage-w-accent,#354027);color:#fff;
-  padding:12px 26px;font:inherit;font-size:12px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:var(--acreage-btn-line,1.4);
+  min-height:var(--acreage-btn-min-h,48px);
+  white-space:nowrap;
+  cursor:pointer;
+  background-color:var(--acreage-btn-bg,#354027);
+  color:var(--acreage-btn-text,#F4F2EA);
+  padding:var(--acreage-btn-pad-y,13px) var(--acreage-btn-pad-x,28px);
+  border:var(--acreage-btn-border,0px) solid var(--acreage-btn-bg,#354027);
+  border-radius:var(--acreage-btn-radius,0px);
+  font-family:inherit;
+  font-size:var(--acreage-btn-size,12px);
+  font-weight:var(--acreage-btn-weight,700);
+  letter-spacing:var(--acreage-btn-tracking,.14em);
+  text-transform:var(--acreage-btn-transform,uppercase);
+  transition:background .18s,color .18s,border-color .18s;
+}
+.acreage-w-search__submit:hover,
+.acreage-w-filters__submit:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+  border-color:var(--acreage-btn-hover-bg,#9C6423);
 }
 .acreage-w-search__clear,
 .acreage-w-filters__clear{font-size:13px;opacity:.75;}
+
+/* --- active filters ------------------------------------------------------
+   A row of what is currently in force, each removable on its own, with a
+   Clear all beside them. Sits at the TOP of the panel: a visitor who has
+   arrived from a province tile needs to see why the list is short before they
+   scroll past six collapsed checkbox groups looking for the reason. */
+.acreage-w-filters__active{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  margin:0 0 18px;padding:0 0 16px;
+  border-bottom:1px solid var(--acreage-rule,#DED5C0);
+}
+.acreage-w-filters__activelabel{
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--acreage-stone,#8A8172);
+}
+.acreage-w-filters__chips{
+  display:flex;flex-wrap:wrap;gap:8px;
+  list-style:none;margin:0;padding:0;
+}
+.acreage-w-filters__chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 10px;
+  border:1px solid var(--acreage-rule,#DED5C0);
+  background:#fff;
+  font-size:13px;line-height:1.2;
+  color:var(--acreage-ink,#1F2A21)!important;
+  text-decoration:none;
+}
+.acreage-w-filters__chip:hover{
+  border-color:var(--acreage-moss,#354027);
+  background:var(--acreage-panel,#EFE9DA);
+}
+/* The x is the affordance, so it must not fade into the label. */
+.acreage-w-filters__chipx{
+  font-size:15px;line-height:1;
+  color:var(--acreage-stone,#8A8172);
+}
+.acreage-w-filters__chip:hover .acreage-w-filters__chipx{color:var(--acreage-sienna,#9C6423);}
+.acreage-w-filters__clearall{
+  font-size:13px;
+  color:var(--acreage-moss,#354027)!important;
+  text-decoration:underline;text-underline-offset:.18em;
+}
 
 /* ---------------------------------------------------------------- filters */
 .acreage-w-filters__heading{margin:0 0 16px;font-size:1.15em;}
@@ -88,6 +152,9 @@
 }
 .acreage-w-filters__count{margin-left:auto;opacity:.55;font-variant-numeric:tabular-nums;font-size:.85em;}
 .acreage-w-filters__actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+/* Layout only. The filter panel is a narrow sidebar column, so the button fills
+   it instead of sitting at content width. */
+.acreage-w-filters__submit{width:100%;}
 
 /* ------------------------------------------------------------------ tiles */
 .acreage-w-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;}
@@ -160,9 +227,27 @@
   font:inherit;border-radius:0;
 }
 .acreage-w-form__submit{
-  border:0;cursor:pointer;background:var(--acreage-w-accent,#354027);color:#fff;
-  padding:13px 30px;font:inherit;font-size:12px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:var(--acreage-btn-line,1.4);
+  min-height:var(--acreage-btn-min-h,48px);
+  white-space:nowrap;
+  cursor:pointer;
+  background-color:var(--acreage-btn-bg,#354027);
+  color:var(--acreage-btn-text,#F4F2EA);
+  padding:var(--acreage-btn-pad-y,13px) var(--acreage-btn-pad-x,28px);
+  border:var(--acreage-btn-border,0px) solid var(--acreage-btn-bg,#354027);
+  border-radius:var(--acreage-btn-radius,0px);
+  font-family:inherit;
+  font-size:var(--acreage-btn-size,12px);
+  font-weight:var(--acreage-btn-weight,700);
+  letter-spacing:var(--acreage-btn-tracking,.14em);
+  text-transform:var(--acreage-btn-transform,uppercase);
+  transition:background .18s,color .18s,border-color .18s;
+}
+.acreage-w-form__submit:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+  border-color:var(--acreage-btn-hover-bg,#9C6423);
 }
 .acreage-w-form__ok,
 .acreage-w-form__error{padding:14px 16px;margin:0;border-left:3px solid var(--acreage-w-accent,#354027);background:rgba(0,0,0,.04);}
@@ -221,15 +306,32 @@
 
 /* Load more. */
 .acreage-w-more{margin-top:32px;text-align:center;}
+/* "Show more farms" is the outline variant. It was its own thing — 13/34 at
+   .78rem with a moss fill on hover — which is how a fourth button appearance
+   got onto the archive without anyone deciding to add one. */
 .acreage-w-more__btn{
-  appearance:none;cursor:pointer;font:inherit;
-  background:transparent;color:var(--acreage-moss,#354027);
-  border:1px solid var(--acreage-moss,#354027);
-  padding:13px 34px;font-size:.78rem;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;
-  transition:background 160ms ease,color 160ms ease;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:var(--acreage-btn-line,1.4);
+  min-height:var(--acreage-btn-min-h,48px);
+  white-space:nowrap;
+  appearance:none;cursor:pointer;
+  background-color:transparent;
+  color:var(--acreage-btn-bg,#354027);
+  border:1px solid var(--acreage-btn-bg,#354027);
+  border-radius:var(--acreage-btn-radius,0px);
+  padding:var(--acreage-btn-pad-y,13px) var(--acreage-btn-pad-x,28px);
+  font-family:inherit;
+  font-size:var(--acreage-btn-size,12px);
+  font-weight:var(--acreage-btn-weight,700);
+  letter-spacing:var(--acreage-btn-tracking,.14em);
+  text-transform:var(--acreage-btn-transform,uppercase);
+  transition:background .18s,color .18s,border-color .18s;
 }
-.acreage-w-more__btn:hover{background:var(--acreage-moss,#354027);color:var(--acreage-paper,#F5F0E4);}
+.acreage-w-more__btn:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+  border-color:var(--acreage-btn-hover-bg,#9C6423);
+}
 .acreage-w-more__btn[disabled]{opacity:.5;cursor:default;}
 
 /* Sideways scroller. CSS scroll-snap only — swipe, trackpad, scrollbar and
@@ -316,12 +418,16 @@
 }
 
 .acreage-nav__cta{
-  display:inline-block;white-space:nowrap;
-  background:var(--acreage-moss,#354027);color:var(--acreage-paper,#F5F0E4);
-  padding:11px 20px;font-size:12px;letter-spacing:.1em;text-decoration:none;
-  transition:background 160ms ease;
+  display:inline-block;white-space:nowrap;text-decoration:none;
+  background-color:var(--acreage-btn-bg,#354027);
+  color:var(--acreage-btn-text,#F4F2EA);
+  padding:11px 20px;font-size:12px;letter-spacing:.1em;
+  transition:background .18s,color .18s;
 }
-.acreage-nav__cta:hover{background:var(--acreage-moss-deep,#232B18);color:var(--acreage-paper,#F5F0E4);}
+.acreage-nav__cta:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+}
 
 .acreage-nav__burger{
   display:none;background:none;border:0;padding:10px;cursor:pointer;
@@ -678,25 +784,42 @@ body.acreage-nav-open{overflow:hidden;}
 .acreage-w-search__actions{
   display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px;
 }
+/* Layout only. This rule used to restate the colour, font-size and tracking as
+   well, and being later in the file it quietly beat the shared button contract —
+   so the search button stayed 13px/.16em while every other button moved to
+   12px/.14em. Anything that decides what a button LOOKS like belongs in the
+   contract; this keeps only what makes it a full-width bar. */
+/* Layout only: what makes this one a full-width bar. Its height, colour and
+   type all come from the shared contract, so it is the same button as the
+   enquiry form's — just stretched across the row. */
 .acreage-w-search__submit{
-  flex:1 1 200px;              /* the comp's full-width bar */
-  min-height:50px;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--acreage-moss,#354027);
-  color:#F7F5EF;border:0;cursor:pointer;
-  font-size:13px;letter-spacing:.16em;text-transform:uppercase;
-  transition:background 180ms ease;
+  flex:1 1 200px;
 }
-.acreage-w-search__submit:hover{background:#232B18;color:#F7F5EF;}
+/* The outline variant. It had its own grey border, its own tracking and no
+   vertical padding, which made it a third button sitting next to the other
+   two. */
 .acreage-w-search__clear{
-  min-height:50px;padding:0 18px;
-  display:inline-flex;align-items:center;
-  background:transparent;color:var(--acreage-muted,#6E7566);
-  border:1px solid #C9C1B0;
-  font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-  transition:color 180ms ease, border-color 180ms ease;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:var(--acreage-btn-line,1.4);
+  min-height:var(--acreage-btn-min-h,48px);
+  white-space:nowrap;
+  background-color:transparent;
+  color:var(--acreage-btn-bg,#354027);
+  padding:var(--acreage-btn-pad-y,13px) var(--acreage-btn-pad-x,28px);
+  border:1px solid var(--acreage-btn-bg,#354027);
+  border-radius:var(--acreage-btn-radius,0px);
+  font-family:inherit;
+  font-size:var(--acreage-btn-size,12px);
+  font-weight:var(--acreage-btn-weight,700);
+  letter-spacing:var(--acreage-btn-tracking,.14em);
+  text-transform:var(--acreage-btn-transform,uppercase);
+  transition:background-color .18s,color .18s,border-color .18s;
 }
-.acreage-w-search__clear:hover{color:var(--acreage-moss);border-color:var(--acreage-moss);}
+.acreage-w-search__clear:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+  border-color:var(--acreage-btn-hover-bg,#9C6423);
+}
 
 /* Elementor pads every widget wrap by 10px. On the header that is 20px of dead
    height the comp does not have — its bar is exactly 74px. */
@@ -863,53 +986,75 @@ body.acreage-nav-open{overflow:hidden;}
 
 /* --- hero band ---------------------------------------------------------- */
 .acreage-w-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  align-items:stretch;
+  background:var(--acreage-paper,#F5F0E4);
+}
+
+/* The photograph. object-fit:cover on a real <img> rather than a background
+   image, so it carries alt text and the browser can pick a sensible size. */
+.acreage-w-hero__media{
   position:relative;
-  min-height:clamp(260px,44vw,560px);
-  background:#E4DCCA center/cover no-repeat;
-  display:flex;align-items:flex-end;
+  min-height:clamp(280px,38vw,540px);
+  background:#E4DCCA;
+  overflow:hidden;
 }
-.acreage-w-hero--noimg{background:var(--acreage-panel,#EFE9DA);}
-.acreage-w-hero__scrim{
-  position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top,
-    rgba(24,29,16,.72) 0%,
-    rgba(24,29,16,.30) 38%,
-    rgba(24,29,16,0)   66%);
+.acreage-w-hero__media img{
+  width:100%;height:100%;
+  object-fit:cover;object-position:center;
+  display:block;
 }
+.acreage-w-hero--noimg .acreage-w-hero__media{background:var(--acreage-panel,#EFE9DA);}
+
 .acreage-w-hero__badge{
   position:absolute;
-  top:clamp(16px,2vw,26px);left:clamp(20px,4vw,40px);
+  top:clamp(16px,2vw,26px);left:clamp(16px,2vw,26px);
   z-index:2;
   font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   padding:8px 13px;
   background:var(--acreage-sienna,#9C6423);color:#FBF6EF;
 }
-.acreage-w-hero__body{
-  position:relative;z-index:2;
-  width:100%;
-  display:flex;flex-wrap:wrap;gap:10px 32px;
-  align-items:flex-end;justify-content:space-between;
-  padding:clamp(20px,3vw,34px) clamp(20px,4vw,40px);
+
+/* The particulars. Centred vertically so a short farm name does not leave the
+   panel top-heavy against a tall photograph. */
+.acreage-w-hero__panel{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(28px,4vw,56px) clamp(24px,4vw,56px);
+  background:var(--acreage-panel,#EFE9DA);
 }
 .acreage-w-hero__meta{
   display:block;
   font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-  color:#DCD4BC;margin-bottom:9px;
-  text-shadow:0 1px 12px rgba(20,24,14,.8);
+  color:var(--acreage-stone,#8A8172);
+  margin:0 0 14px;
 }
 .acreage-w-hero__title{
-  margin:0;
+  margin:0 0 18px;
   font-family:var(--acreage-serif,Georgia,serif);font-weight:400;
-  font-size:clamp(26px,3.4vw,44px);line-height:1.08;
-  color:#FBF8ED;
-  text-shadow:0 2px 24px rgba(20,24,14,.65);
+  font-size:clamp(26px,3vw,42px);line-height:1.08;
+  color:var(--acreage-ink,#1F2A21);
 }
 .acreage-w-hero__price{
+  margin:0;
   font-family:var(--acreage-serif,Georgia,serif);
-  font-size:clamp(22px,2.6vw,32px);
-  color:#FBF8ED;
-  text-shadow:0 2px 22px rgba(20,24,14,.8);
-  white-space:nowrap;
+  font-size:clamp(22px,2.4vw,30px);
+  color:var(--acreage-moss,#354027);
+  font-variant-numeric:tabular-nums;
+}
+.acreage-w-hero__extent{
+  margin:6px 0 0;
+  font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--acreage-stone,#8A8172);
+}
+.acreage-w-hero__cta{margin:26px 0 0;}
+
+/* Below the grid breakpoint the two halves stack, photograph first — the image
+   is what makes somebody keep reading, so it must not end up under a screen of
+   text on a phone. */
+@media (max-width:880px){
+  .acreage-w-hero{grid-template-columns:1fr;}
+  .acreage-w-hero__media{min-height:clamp(220px,56vw,340px);}
 }
 
 /* --- price rate --------------------------------------------------------- */

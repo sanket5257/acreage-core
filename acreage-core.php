@@ -37,6 +37,7 @@ if ( ! defined( 'ACREAGE_CORE_GITHUB_REPO' ) ) {
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-post-types.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-fields.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-query.php';
+require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-enquiries.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-admin.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-quick-add.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-updater.php';
@@ -59,6 +60,7 @@ function acreage_core_boot() {
 	new Acreage_Core_Enquiry();
 	new Acreage_Core_Fields();
 	new Acreage_Core_Query();
+	new Acreage_Core_Enquiries();
 	new Acreage_Core_Grid();
 
 	if ( is_admin() ) {

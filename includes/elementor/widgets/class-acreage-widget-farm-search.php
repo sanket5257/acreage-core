@@ -84,9 +84,19 @@ class Acreage_Widget_Farm_Search extends Acreage_Widget_Base {
 		) );
 
 		$this->add_control( 'button_bg', array(
+			/*
+			 * Sets the button VARIABLE, not the background.
+			 *
+			 * Elementor writes a control's selectors into a per-page stylesheet
+			 * at very high specificity — .elementor-1516 .elementor-element-11bc242
+			 * .acreage-w-search__submit — which beat the theme's own :hover rule
+			 * and left this button with no hover state at all. Feeding the
+			 * contract instead means a per-instance colour still flows through
+			 * everything else, hover and border included.
+			 */
 			'label'     => __( 'Button colour', 'acreage' ),
 			'type'      => \Elementor\Controls_Manager::COLOR,
-			'selectors' => array( '{{WRAPPER}} .acreage-w-search__submit' => 'background:{{VALUE}};' ),
+			'selectors' => array( '{{WRAPPER}}' => '--acreage-btn-bg:{{VALUE}};' ),
 		) );
 
 		$this->add_responsive_control( 'field_columns', array(

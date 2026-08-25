@@ -310,7 +310,21 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 	}
 
 	/**
-	 * The hero band: photograph, location, name and price in one block.
+	 * The hero: photograph on one side, the farm's particulars on the other.
+	 *
+	 * WHY THE TEXT IS NOT ON THE PHOTOGRAPH ANY MORE
+	 *
+	 * The first version laid the name, location and price over the image with a
+	 * gradient scrim under them. That works on the one photograph it was designed
+	 * against and is a lottery on the rest: these are drone shots of real farms,
+	 * so the bottom third is sometimes dark bushveld and sometimes bright Karoo
+	 * dust or a white-roofed werf, and the asking price would disappear into it.
+	 * A scrim heavy enough to guarantee contrast on the worst image ruins the
+	 * best one — and the photography is the product here.
+	 *
+	 * So the two are set side by side. Text sits on the paper colour where it is
+	 * always legible, the photograph is never darkened, and the price is a plain
+	 * readable figure rather than something floating over grass.
 	 *
 	 * @param int $post_id Listing.
 	 */
@@ -323,26 +337,48 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 		$extent   = $this->extent( $post_id );
 
 		$place = trim( implode( ', ', array_filter( array( $region, $province ) ) ), ', ' );
-		$meta  = trim( implode( ' · ', array_filter( array( $place, $extent ) ) ), ' ·' );
 		$badge = $big_five ? __( 'Big Five', 'acreage' ) : $status;
+		$alt   = get_post_meta( get_post_thumbnail_id( $post_id ), '_wp_attachment_image_alt', true );
 		?>
-		<div class="acreage-w-hero<?php echo $img ? '' : ' acreage-w-hero--noimg'; ?>"
-			<?php if ( $img ) : ?>style="background-image:url('<?php echo esc_url( $img ); ?>')"<?php endif; ?>>
+		<div class="acreage-w-hero<?php echo $img ? '' : ' acreage-w-hero--noimg'; ?>">
 
-			<span class="acreage-w-hero__scrim" aria-hidden="true"></span>
+			<div class="acreage-w-hero__media">
+				<?php if ( $img ) : ?>
+					<img src="<?php echo esc_url( $img ); ?>"
+						alt="<?php echo esc_attr( $alt ? $alt : get_the_title( $post_id ) ); ?>"
+						loading="eager" decoding="async">
+				<?php endif; ?>
 
-			<?php if ( $badge ) : ?>
-				<span class="acreage-w-hero__badge"><?php echo esc_html( $badge ); ?></span>
-			<?php endif; ?>
+				<?php if ( $badge ) : ?>
+					<span class="acreage-w-hero__badge"><?php echo esc_html( $badge ); ?></span>
+				<?php endif; ?>
+			</div>
 
-			<div class="acreage-w-hero__body">
-				<div>
-					<?php if ( $meta ) : ?>
-						<span class="acreage-w-hero__meta"><?php echo esc_html( $meta ); ?></span>
-					<?php endif; ?>
-					<h1 class="acreage-w-hero__title"><?php echo esc_html( get_the_title( $post_id ) ); ?></h1>
-				</div>
-				<span class="acreage-w-hero__price"><?php echo esc_html( $this->price( $post_id ) ); ?></span>
+			<div class="acreage-w-hero__panel">
+				<?php if ( $place ) : ?>
+					<span class="acreage-w-hero__meta"><?php echo esc_html( $place ); ?></span>
+				<?php endif; ?>
+
+				<h1 class="acreage-w-hero__title"><?php echo esc_html( get_the_title( $post_id ) ); ?></h1>
+
+				<p class="acreage-w-hero__price"><?php echo esc_html( $this->price( $post_id ) ); ?></p>
+
+				<?php if ( $extent ) : ?>
+					<p class="acreage-w-hero__extent"><?php echo esc_html( $extent ); ?></p>
+				<?php endif; ?>
+
+				<?php
+				/*
+				 * Anchored rather than linked to a contact page: the enquiry form
+				 * is already further down this page, and sending a buyer to a
+				 * different URL loses which farm they were reading about.
+				 */
+				?>
+				<p class="acreage-w-hero__cta">
+					<a class="acreage-btn" href="#acreage-enquire">
+						<?php esc_html_e( 'Enquire about this farm', 'acreage' ); ?>
+					</a>
+				</p>
 			</div>
 		</div>
 		<?php
