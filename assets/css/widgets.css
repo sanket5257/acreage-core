@@ -131,6 +131,58 @@
    it instead of sitting at content width. */
 .acreage-w-filters__submit{width:100%;}
 
+/* --- the collapsible group of filters ----------------------------------- */
+/* On a desktop this disclosure is not a disclosure: the summary is hidden and
+   the script leaves it open, so the panel is the sidebar it always was. The
+   markup is the same at both sizes because the alternative — rendering two
+   different panels — is two things to keep in step. */
+.acreage-w-filters__toggle{display:none;}
+
+@media (max-width:900px){
+  /* The panel heading and the disclosure label say the same thing one line
+     apart. The summary is the one that has to stay — it is the control — so
+     the heading stands down and the summary becomes the heading. */
+  .acreage-w-filters__heading{
+    position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;
+  }
+  .acreage-w-filters__toggle{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    min-height:48px;
+    padding:12px 0;
+    cursor:pointer;
+    list-style:none;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+    color:var(--acreage-moss,#354027);
+    border-bottom:1px solid var(--acreage-rule,#DED5C0);
+  }
+  /* Safari draws its own triangle through ::-webkit-details-marker and ignores
+     list-style, so both have to be turned off to draw our own. */
+  .acreage-w-filters__toggle::-webkit-details-marker{display:none;}
+
+  /* The chevron. Rotates when the panel opens, so the control says which way
+     it is going rather than only what it is called. */
+  .acreage-w-filters__toggle::after{
+    content:"";
+    width:9px;height:9px;
+    border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor;
+    transform:rotate(45deg);
+    transition:transform 160ms ease;
+    margin-inline-end:4px;
+  }
+  .acreage-w-filters__disclosure[open] > .acreage-w-filters__toggle::after{
+    transform:rotate(-135deg);
+  }
+  .acreage-w-filters__disclosure[open] > .acreage-w-filters__toggle{border-bottom-color:transparent;}
+  .acreage-w-filters__disclosure > .acreage-w-filters__group:first-of-type{margin-top:18px;}
+
+  /* A checkbox row is a tap target and was 21px tall — the box itself is 13px.
+     Padding rather than a min-height on the label, so the whole row including
+     the count on the right stays clickable. */
+  .acreage-w-filters__option{padding:11px 0;}
+  .acreage-w-filters__option input[type="checkbox"]{width:18px;height:18px;flex:0 0 auto;}
+}
+
 /* --- live filtering ------------------------------------------------------
    Once the script has a grid to drive, Apply has nothing left to do: the farms
    changed the moment the box was ticked, and a button that does nothing is
@@ -295,11 +347,21 @@
 .acreage-w-form__field label{
   font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;opacity:.7;
 }
+/* The select is listed here rather than left to the browser so the "Regarding"
+   dropdown on the contact page matches the fields above it — a default select
+   is a different height, a different border and a different font on every OS,
+   and it sat in the middle of the form looking like it belonged to another
+   site. appearance:none would also remove the arrow, so it stays. */
 .acreage-w-form__field input,
+.acreage-w-form__field select,
 .acreage-w-form__field textarea{
   width:100%;padding:11px 12px;border:1px solid rgba(0,0,0,.2);background:#fff;
   font:inherit;border-radius:0;
 }
+/* Selects ignore the shared padding on their own text baseline in Safari, and
+   sit a pixel taller than an input in Chrome. Matching the input's height
+   explicitly is the only thing that lines the two up everywhere. */
+.acreage-w-form__field select{height:calc(1.4em + 24px);}
 .acreage-w-form__submit{
   display:inline-flex;align-items:center;justify-content:center;
   line-height:var(--acreage-btn-line,1.4);
@@ -523,6 +585,29 @@
     border-bottom:1px solid var(--acreage-rule,#DED5C0);
     box-shadow:0 24px 40px -28px rgba(28,34,18,.5);
     padding:8px 0 18px;
+
+    /* The panel must never be taller than the space under the bar.
+
+       It had no ceiling and no overflow rule, so a menu with more items than
+       this demo's five — or this demo's five on a phone held in landscape,
+       where the viewport is 375px tall — ran off the bottom of the screen with
+       no way to reach the last item. The page behind is scroll-locked while the
+       panel is open, so there was no scrolling out of it either.
+
+       The percentage resolves against .acreage-nav__bar, which is the panel's
+       containing block, so this is "the viewport minus the bar" without needing
+       to know the bar's height. dvh over vh because mobile browsers shrink the
+       visual viewport when the address bar is showing.
+
+       The extra 24px covers the gap between the top of the viewport and the top
+       of the bar — the header section has its own padding above it, so the bar
+       is not flush with the screen and its height alone under-subtracts. CSS
+       cannot read that offset, so this allows for a generous one. It only costs
+       height on screens where the cap is not binding anyway. */
+    max-height:calc(100vh - 100% - 24px);
+    max-height:calc(100dvh - 100% - 24px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
   }
   .acreage-nav.is-open .acreage-nav__panel{display:flex;}
   .acreage-nav__bar{position:relative;flex-wrap:nowrap;}
@@ -536,8 +621,20 @@
     background:transparent;min-width:0;
   }
   .acreage-nav__list .sub-menu a{padding-left:clamp(34px,9vw,52px);font-size:13px;}
+
+  /* Every row in the panel is a tap target, so every row gets the 44px
+     minimum. The top-level items already cleared it at 48px; the submenu items
+     came out at 41 and the telephone button at 37, which are the two things
+     somebody actually aims at with a thumb while holding the phone one-handed.
+     min-height rather than more padding, so the text stays where it is. */
+  .acreage-nav__list a{
+    min-height:44px;
+    display:flex;align-items:center;
+  }
   .acreage-nav__cta{
     margin:14px clamp(18px,5vw,32px) 0;text-align:center;padding:14px 20px;font-size:13px;
+    min-height:44px;
+    display:flex;align-items:center;justify-content:center;
   }
 }
 
@@ -565,20 +662,46 @@ body.acreage-nav-open{overflow:hidden;}
 @media (max-width:700px){  .acreage-w-grid--scroll{grid-auto-columns:minmax(250px,84%);} }
 
 /* --- tabs --------------------------------------------------------------- */
+/* These used to become a nowrap horizontal scroller below 700px. That hid the
+   third tab off the right edge of a box with no scrollbar and no fade, so on a
+   phone the category filter looked like it had two options instead of three —
+   and a customer with more categories than this demo would lose more of them.
+   A scroller needs an affordance; wrapping needs nothing, works for three tabs
+   or eight, and is what the strip already does above 700px anyway. */
 @media (max-width:700px){
   .acreage-w-tabs{
-    flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;
-    gap:2px;-webkit-overflow-scrolling:touch;
+    flex-wrap:wrap;
+    gap:0 2px;
+    /* Pulled left by one tab's padding so the text of the first tab in EVERY
+       row sits on the page's margin. Zeroing padding-left on :first-child only
+       aligns the first row and leaves every wrapped row indented by 10px. */
+    margin-left:-10px;
   }
-  .acreage-w-tab{white-space:nowrap;padding:12px 14px;font-size:11px;}
+  /* Tighter than the desktop 10/18 so the common case — a few short category
+     names — still lands on one line before it has to wrap. */
+  .acreage-w-tab{white-space:nowrap;padding:12px 10px;font-size:11px;}
 }
 
 /* --- comfortable tap targets ------------------------------------------- */
+/* Keyed on the pointer, not the width: a phone is coarse at any size and a
+   desktop is fine at any size, so this reaches touch without inflating a
+   mouse-driven layout that happens to be in a narrow window.
+
+   The species chips and the filter chips were missing from this list. Both are
+   standalone controls a thumb has to hit — a species chip is a link to every
+   other farm carrying that game — and both came out at 35px. Card titles are
+   deliberately absent: the card's photograph is already a large link to the
+   same place, and forcing a title to 44px turns a two-line heading into a
+   four-line block. */
 @media (pointer:coarse){
   .acreage-w-tab,
   .acreage-w-more__btn,
   .acreage-w-card__more,
-  .acreage-w-card__enquire{min-height:44px;display:inline-flex;align-items:center;}
+  .acreage-w-card__enquire,
+  .acreage-w-species__chip,
+  .acreage-w-filters__chip,
+  .acreage-w-pagination a,
+  .acreage-w-pagination span{min-height:44px;display:inline-flex;align-items:center;}
 }
 
 /* --- category cards ----------------------------------------------------- */
@@ -1149,7 +1272,13 @@ body.acreage-nav-open{overflow:hidden;}
    is what makes somebody keep reading, so it must not end up under a screen of
    text on a phone. */
 @media (max-width:880px){
-  .acreage-w-hero{grid-template-columns:1fr;}
+  /* minmax(0,1fr), not a bare 1fr. A 1fr track has an automatic minimum of
+     min-content, so the panel's padding plus its longest unbreakable run — the
+     price — held the single column at 311px inside a 305px screen and pushed
+     the whole page sideways. The explicit zero minimum lets the track shrink to
+     the space that actually exists; above 880 the two-column rule already does
+     this and never had the problem. */
+  .acreage-w-hero{grid-template-columns:minmax(0,1fr);}
   .acreage-w-hero__media{min-height:clamp(220px,56vw,340px);}
 }
 

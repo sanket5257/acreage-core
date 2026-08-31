@@ -405,10 +405,68 @@
 		});
 	}
 
+	/**
+	 * Collapse the filter groups on a narrow screen, expand them on a wide one.
+	 *
+	 * The panel is printed OPEN so that a visitor with no JavaScript gets the
+	 * whole working form, which is the rule the rest of this file follows. That
+	 * means the collapsing has to happen here, and it has to happen in both
+	 * directions: someone who rotates a tablet, or drags a desktop window
+	 * narrow, should get the panel that suits the width they end up at.
+	 *
+	 * A visitor who has opened or closed it themselves is left alone from then
+	 * on — re-deciding for them on the next resize would undo a deliberate act.
+	 */
+	function responsiveDisclosure() {
+		var panels = document.querySelectorAll('.acreage-w-filters__disclosure');
+
+		if (!panels.length || !window.matchMedia) {
+			return;
+		}
+
+		var narrow = window.matchMedia('(max-width: 900px)');
+
+		forEach(panels, function (panel) {
+			if (panel.getAttribute('data-acreage-bound')) {
+				return;
+			}
+			panel.setAttribute('data-acreage-bound', '1');
+
+			var touched = false;
+			var syncing = false;
+
+			panel.addEventListener('toggle', function () {
+				// Fires for our own changes too, so only a real interaction counts.
+				if (!syncing) {
+					touched = true;
+				}
+			});
+
+			var sync = function () {
+				if (touched) {
+					return;
+				}
+				syncing = true;
+				panel.open = !narrow.matches;
+				// The flag is cleared after the toggle event has run.
+				window.setTimeout(function () { syncing = false; }, 0);
+			};
+
+			sync();
+
+			if (narrow.addEventListener) {
+				narrow.addEventListener('change', sync);
+			} else if (narrow.addListener) {
+				narrow.addListener(sync);
+			}
+		});
+	}
+
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', function () { init(); });
+		document.addEventListener('DOMContentLoaded', function () { init(); responsiveDisclosure(); });
 	} else {
 		init();
+		responsiveDisclosure();
 	}
 
 	// Elementor rebuilds widget markup in the editor without reloading the page.

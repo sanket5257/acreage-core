@@ -216,6 +216,31 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 
 			<?php
 			/*
+			 * The groups collapse on a phone.
+			 *
+			 * Seven filter axes with every term listed is 800px of checkboxes.
+			 * On a desktop that is a sidebar beside the farms; on a phone it is
+			 * a wall the visitor scrolls past before reaching a single farm —
+			 * which is the wrong way round on the page whose entire job is
+			 * showing farms.
+			 *
+			 * Printed OPEN, and closed afterwards by the script only when the
+			 * screen is narrow. That order matters and follows the same rule as
+			 * the rest of this widget: with no JavaScript the visitor gets the
+			 * full working form exactly as before, never a panel that needs a
+			 * script to be opened.
+			 *
+			 * The chip bar above stays outside the disclosure, so what is
+			 * currently filtered is readable whether or not it is expanded.
+			 */
+			?>
+			<details class="acreage-w-filters__disclosure" open>
+				<summary class="acreage-w-filters__toggle">
+					<span><?php esc_html_e( 'Filter farms', 'acreage' ); ?></span>
+				</summary>
+
+			<?php
+			/*
 			 * The checkbox groups are captured rather than printed straight out,
 			 * so that the loop can report back which slugs it actually gave a
 			 * checkbox to. What it did not is dealt with immediately below.
@@ -311,6 +336,7 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 					</a>
 				<?php endif; ?>
 			</div>
+			</details>
 		</form>
 		<?php
 	}

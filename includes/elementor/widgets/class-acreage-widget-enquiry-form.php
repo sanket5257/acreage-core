@@ -82,6 +82,94 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 			'description' => __( 'The farm’s name is added after this automatically.', 'acreage' ),
 		) );
 
+		/*
+		 * The two extra fields, both off by default.
+		 *
+		 * WHY OFF, AND WHY NOT ALWAYS ON
+		 *
+		 * On a farm page the subject is the farm — the form already prints
+		 * "About <farm name>" above the fields and the enquiry carries the
+		 * listing ID. Asking a buyer to type a subject there is a field that can
+		 * only be answered wrong, and every extra field on a conversion form
+		 * costs enquiries.
+		 *
+		 * On the contact page there is no farm, so the message arrives as
+		 * "Enquiry — Africa Game Farms" and the owner has to open it to learn
+		 * what it is about. That is the page these are for, and the kit switches
+		 * them on there.
+		 */
+		$this->add_control( 'show_subject', array(
+			'condition'    => array( 'form_source' => 'builtin' ),
+			'label'        => __( 'Ask for a subject', 'acreage' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'     => __( 'Show', 'acreage' ),
+			'label_off'    => __( 'Hide', 'acreage' ),
+			'default'      => '',
+			'description'  => __( 'For a general contact page. On a farm page the farm is the subject already.', 'acreage' ),
+		) );
+
+		$this->add_control( 'show_regarding', array(
+			'condition'   => array( 'form_source' => 'builtin' ),
+			'label'       => __( 'Ask what it is regarding', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'    => __( 'Show', 'acreage' ),
+			'label_off'   => __( 'Hide', 'acreage' ),
+			'default'     => '',
+			'description' => __( 'A dropdown, so general questions can be told apart from farm enquiries at a glance.', 'acreage' ),
+		) );
+
+		$this->add_control( 'regarding_label', array(
+			'condition' => array( 'form_source' => 'builtin', 'show_regarding' => 'yes' ),
+			'label'     => __( 'Dropdown label', 'acreage' ),
+			'type'      => \Elementor\Controls_Manager::TEXT,
+			'default'   => __( 'Regarding', 'acreage' ),
+		) );
+
+		/*
+		 * A textarea of lines rather than a repeater: the customer is writing a
+		 * list of five short phrases, and a repeater makes that five panels to
+		 * open. The value is only ever echoed back into the email, never used to
+		 * route anything, so there is nothing here worth the extra interface.
+		 */
+		$this->add_control( 'regarding_options', array(
+			'condition'   => array( 'form_source' => 'builtin', 'show_regarding' => 'yes' ),
+			'label'       => __( 'Dropdown choices', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::TEXTAREA,
+			'rows'        => 6,
+			'default'     => implode(
+				"\n",
+				array(
+					__( 'General query', 'acreage' ),
+					__( 'About a game farm', 'acreage' ),
+					__( 'About a cattle farm', 'acreage' ),
+					__( 'Selling a farm', 'acreage' ),
+					__( 'Something about the website', 'acreage' ),
+					__( 'Other', 'acreage' ),
+				)
+			),
+			'description' => __( 'One per line. The first is what the dropdown opens on.', 'acreage' ),
+		) );
+
+		/*
+		 * Which choice the dropdown opens on.
+		 *
+		 * The point of this is the "Sell your farm" page, where the visitor has
+		 * already said what they want by being on that page at all. Making them
+		 * pick "Selling a farm" out of a list they have to read first is asking
+		 * them to answer a question they have already answered.
+		 *
+		 * Matched against the list above rather than pushed in as a new option:
+		 * a typo here should leave the dropdown on its first choice, not add a
+		 * seventh one nobody meant to offer.
+		 */
+		$this->add_control( 'regarding_default', array(
+			'condition'   => array( 'form_source' => 'builtin', 'show_regarding' => 'yes' ),
+			'label'       => __( 'Opens on', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '',
+			'description' => __( 'Type one of the choices above to have the dropdown start there. Leave empty for the first one.', 'acreage' ),
+		) );
+
 		$this->add_control( 'button_text', array(
 			'condition' => array( 'form_source' => 'builtin' ),
 			'label'   => __( 'Button wording', 'acreage' ),
@@ -134,6 +222,31 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 	 *
 	 * @return array value => label
 	 */
+	/**
+	 * The "Regarding" choices, parsed from the textarea.
+	 *
+	 * Blank lines are dropped rather than becoming an empty option, and stray
+	 * carriage returns are handled because a customer pasting from Word or from
+	 * Notepad on Windows sends \r\n.
+	 *
+	 * @param string $raw One choice per line.
+	 * @return string[]
+	 */
+	private static function choices( $raw ) {
+		$lines = preg_split( '/\R/', (string) $raw );
+		$out   = array();
+
+		foreach ( (array) $lines as $line ) {
+			$line = sanitize_text_field( $line );
+
+			if ( '' !== $line ) {
+				$out[] = $line;
+			}
+		}
+
+		return $out;
+	}
+
 	private static function source_options() {
 		$options = array(
 			'builtin' => __( 'Built-in enquiry form', 'acreage' ),
@@ -291,6 +404,40 @@ class Acreage_Widget_Enquiry_Form extends Acreage_Widget_Base {
 						<label for="acreage-phone-<?php echo esc_attr( $this->get_id() ); ?>"><?php esc_html_e( 'Phone', 'acreage' ); ?></label>
 						<input type="tel" name="acreage_phone" id="acreage-phone-<?php echo esc_attr( $this->get_id() ); ?>">
 					</p>
+
+					<?php if ( 'yes' === $settings['show_subject'] ) : ?>
+						<p class="acreage-w-form__field">
+							<label for="acreage-subject-<?php echo esc_attr( $this->get_id() ); ?>"><?php esc_html_e( 'Subject', 'acreage' ); ?></label>
+							<input type="text" name="acreage_subject" id="acreage-subject-<?php echo esc_attr( $this->get_id() ); ?>">
+						</p>
+					<?php endif; ?>
+
+					<?php
+					$choices = 'yes' === $settings['show_regarding'] ? self::choices( $settings['regarding_options'] ) : array();
+
+					// A dropdown with nothing in it is a dropdown that cannot be
+					// answered, so an emptied-out list hides the field entirely.
+					if ( $choices ) :
+						?>
+						<p class="acreage-w-form__field">
+							<label for="acreage-regarding-<?php echo esc_attr( $this->get_id() ); ?>">
+								<?php echo esc_html( $settings['regarding_label'] ? $settings['regarding_label'] : __( 'Regarding', 'acreage' ) ); ?>
+							</label>
+							<?php
+							// An unrecognised preselection is ignored, so the
+							// dropdown falls back to opening on its first choice.
+							$preselect = sanitize_text_field( $settings['regarding_default'] );
+							$preselect = in_array( $preselect, $choices, true ) ? $preselect : '';
+							?>
+							<select name="acreage_regarding" id="acreage-regarding-<?php echo esc_attr( $this->get_id() ); ?>">
+								<?php foreach ( $choices as $choice ) : ?>
+									<option value="<?php echo esc_attr( $choice ); ?>" <?php selected( $preselect, $choice ); ?>>
+										<?php echo esc_html( $choice ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</p>
+					<?php endif; ?>
 
 					<p class="acreage-w-form__field">
 						<label for="acreage-message-<?php echo esc_attr( $this->get_id() ); ?>"><?php esc_html_e( 'Message', 'acreage' ); ?></label>

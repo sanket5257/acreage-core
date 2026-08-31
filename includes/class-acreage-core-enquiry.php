@@ -92,6 +92,21 @@ class Acreage_Core_Enquiry {
 		$message = isset( $_POST['acreage_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['acreage_message'] ) ) : '';
 		$listing = isset( $_POST['acreage_listing'] ) ? absint( $_POST['acreage_listing'] ) : 0;
 
+		/*
+		 * Both optional — the form only shows them on a general contact page.
+		 *
+		 * Neither is trusted. "Regarding" is a <select>, but a select is only a
+		 * suggestion to a browser: anything can be posted in its place. Both are
+		 * capped because they are shown back in the admin list and one of them
+		 * reaches the mail Subject header, and neither has any business being
+		 * longer than a line.
+		 */
+		$subject_line = isset( $_POST['acreage_subject'] ) ? sanitize_text_field( wp_unslash( $_POST['acreage_subject'] ) ) : '';
+		$regarding    = isset( $_POST['acreage_regarding'] ) ? sanitize_text_field( wp_unslash( $_POST['acreage_regarding'] ) ) : '';
+
+		$subject_line = mb_substr( $subject_line, 0, 160 );
+		$regarding    = mb_substr( $regarding, 0, 100 );
+
 		if ( ! $name || ! is_email( $email ) || ! $message ) {
 			$this->finish( $return, false );
 		}
@@ -103,8 +118,28 @@ class Acreage_Core_Enquiry {
 			$this->finish( $return, true );
 		}
 
-		$farm    = $listing ? get_the_title( $listing ) : get_bloginfo( 'name' );
-		$subject = trim( $prefix . ' ' . $farm );
+		$farm = $listing ? get_the_title( $listing ) : get_bloginfo( 'name' );
+
+		/*
+		 * What goes after the prefix, in order of how much it tells the reader.
+		 *
+		 * A farm enquiry is named by its farm — that is the whole subject. A
+		 * general enquiry has no farm, so the sender's own subject is the most
+		 * useful thing available, then whatever they picked in the dropdown, and
+		 * only failing both does it fall back to the site name, which is what
+		 * every message used to say.
+		 */
+		$topic = $farm;
+
+		if ( ! $listing ) {
+			if ( $subject_line ) {
+				$topic = $subject_line;
+			} elseif ( $regarding ) {
+				$topic = $regarding;
+			}
+		}
+
+		$subject = trim( $prefix . ' ' . $topic );
 
 		$body = array(
 			/* translators: %s: farm name. */
@@ -117,6 +152,10 @@ class Acreage_Core_Enquiry {
 			sprintf( __( 'Email: %s', 'acreage' ), $email ),
 			/* translators: %s: sender phone. */
 			$phone ? sprintf( __( 'Phone: %s', 'acreage' ), $phone ) : '',
+			/* translators: %s: what the enquiry is regarding. */
+			$regarding ? sprintf( __( 'Regarding: %s', 'acreage' ), $regarding ) : '',
+			/* translators: %s: subject the sender typed. */
+			$subject_line ? sprintf( __( 'Subject: %s', 'acreage' ), $subject_line ) : '',
 			'',
 			$message,
 		);
@@ -134,7 +173,19 @@ class Acreage_Core_Enquiry {
 		 * @param bool  $sent    Whether wp_mail() accepted it.
 		 * @param array $enquiry The sanitised enquiry.
 		 */
-		do_action( 'acreage_core_enquiry_sent', $sent, compact( 'name', 'email', 'phone', 'message', 'listing' ) );
+		do_action(
+			'acreage_core_enquiry_sent',
+			$sent,
+			array(
+				'name'      => $name,
+				'email'     => $email,
+				'phone'     => $phone,
+				'message'   => $message,
+				'listing'   => $listing,
+				'subject'   => $subject_line,
+				'regarding' => $regarding,
+			)
+		);
 
 		$this->finish( $return, $sent );
 	}

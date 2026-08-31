@@ -123,14 +123,34 @@ class Acreage_Core_Enquiries {
 	 * @param array $enquiry Sanitised enquiry: name, email, phone, message, listing.
 	 */
 	public function store( $sent, $enquiry ) {
-		$defaults = array( 'name' => '', 'email' => '', 'phone' => '', 'message' => '', 'listing' => 0 );
+		$defaults = array(
+			'name'      => '',
+			'email'     => '',
+			'phone'     => '',
+			'message'   => '',
+			'listing'   => 0,
+			'subject'   => '',
+			'regarding' => '',
+		);
 		$enquiry  = wp_parse_args( $enquiry, $defaults );
 
 		$farm = $enquiry['listing'] ? get_the_title( $enquiry['listing'] ) : '';
 
-		$title = $farm
-			/* translators: 1: sender name, 2: farm name. */
-			? sprintf( __( '%1$s — %2$s', 'acreage' ), $enquiry['name'], $farm )
+		/*
+		 * The row title is the one thing visible without opening anything, so it
+		 * carries whatever names this enquiry: the farm on a listing enquiry, and
+		 * on a general one the subject the sender typed, or the dropdown choice.
+		 * A list of bare names tells the owner nothing about which to open first.
+		 */
+		$about = $farm;
+
+		if ( ! $about ) {
+			$about = $enquiry['subject'] ? $enquiry['subject'] : $enquiry['regarding'];
+		}
+
+		$title = $about
+			/* translators: 1: sender name, 2: farm name or subject. */
+			? sprintf( __( '%1$s — %2$s', 'acreage' ), $enquiry['name'], $about )
 			: $enquiry['name'];
 
 		$id = wp_insert_post( array(
@@ -148,6 +168,8 @@ class Acreage_Core_Enquiries {
 		update_post_meta( $id, '_acreage_enq_email', $enquiry['email'] );
 		update_post_meta( $id, '_acreage_enq_phone', $enquiry['phone'] );
 		update_post_meta( $id, '_acreage_enq_listing', (int) $enquiry['listing'] );
+		update_post_meta( $id, '_acreage_enq_subject', $enquiry['subject'] );
+		update_post_meta( $id, '_acreage_enq_regarding', $enquiry['regarding'] );
 		update_post_meta( $id, self::SENT, $sent ? '1' : '0' );
 		update_post_meta( $id, self::READ, '0' );
 	}
@@ -219,8 +241,19 @@ class Acreage_Core_Enquiries {
 						esc_html( get_the_title( $listing ) )
 					);
 				} else {
-					echo '<span aria-hidden="true">—</span><span class="screen-reader-text">'
-						. esc_html__( 'General enquiry', 'acreage' ) . '</span>';
+					/*
+					 * A general enquiry has no farm, but it usually has a
+					 * "Regarding" — and "General query" in this column is far
+					 * more use when triaging an inbox than a dash.
+					 */
+					$regarding = get_post_meta( $post_id, '_acreage_enq_regarding', true );
+
+					if ( $regarding ) {
+						echo esc_html( $regarding );
+					} else {
+						echo '<span aria-hidden="true">—</span><span class="screen-reader-text">'
+							. esc_html__( 'General enquiry', 'acreage' ) . '</span>';
+					}
 				}
 				break;
 
@@ -275,16 +308,29 @@ class Acreage_Core_Enquiries {
 		$listing = (int) get_post_meta( $post->ID, '_acreage_enq_listing', true );
 		$sent    = '1' === get_post_meta( $post->ID, self::SENT, true );
 
+		$enq_subject = get_post_meta( $post->ID, '_acreage_enq_subject', true );
+		$regarding   = get_post_meta( $post->ID, '_acreage_enq_regarding', true );
+
 		// Opening it is what "read" means, so mark it here rather than making
 		// somebody click a second time to say they have seen it.
 		if ( '1' !== get_post_meta( $post->ID, self::READ, true ) ) {
 			update_post_meta( $post->ID, self::READ, '1' );
 		}
 
-		$subject = $listing
+		/*
+		 * The mailto's subject. Replying "Re: your enquiry" to somebody who
+		 * wrote a subject line makes them go and look up what they asked, so
+		 * theirs is quoted back when there is no farm to name instead.
+		 */
+		if ( $listing ) {
 			/* translators: %s: farm name. */
-			? sprintf( __( 'Re: %s', 'acreage' ), get_the_title( $listing ) )
-			: __( 'Re: your enquiry', 'acreage' );
+			$subject = sprintf( __( 'Re: %s', 'acreage' ), get_the_title( $listing ) );
+		} elseif ( $enq_subject ) {
+			/* translators: %s: subject the sender typed. */
+			$subject = sprintf( __( 'Re: %s', 'acreage' ), $enq_subject );
+		} else {
+			$subject = __( 'Re: your enquiry', 'acreage' );
+		}
 		?>
 		<?php if ( ! $sent ) : ?>
 			<div class="notice notice-error inline"><p>
@@ -324,6 +370,19 @@ class Acreage_Core_Enquiries {
 						<?php endif; ?>
 					</td>
 				</tr>
+				<?php // Both only appear on the contact form, so both are hidden unless present. ?>
+				<?php if ( $regarding ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Regarding', 'acreage' ); ?></th>
+						<td><?php echo esc_html( $regarding ); ?></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( $enq_subject ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Subject', 'acreage' ); ?></th>
+						<td><?php echo esc_html( $enq_subject ); ?></td>
+					</tr>
+				<?php endif; ?>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Received', 'acreage' ); ?></th>
 					<td><?php echo esc_html( get_the_date( '', $post ) . ' ' . get_the_time( '', $post ) ); ?></td>
@@ -454,7 +513,7 @@ class Acreage_Core_Enquiries {
 
 		$out = fopen( 'php://output', 'w' );
 
-		fputcsv( $out, array( 'Received', 'Name', 'Email', 'Phone', 'Farm', 'Message', 'Emailed', 'Read' ) );
+		fputcsv( $out, array( 'Received', 'Name', 'Email', 'Phone', 'Farm', 'Regarding', 'Subject', 'Message', 'Emailed', 'Read' ) );
 
 		foreach ( $rows as $row ) {
 			$listing = (int) get_post_meta( $row->ID, '_acreage_enq_listing', true );
@@ -465,6 +524,8 @@ class Acreage_Core_Enquiries {
 				get_post_meta( $row->ID, '_acreage_enq_email', true ),
 				get_post_meta( $row->ID, '_acreage_enq_phone', true ),
 				$listing ? get_the_title( $listing ) : '',
+				get_post_meta( $row->ID, '_acreage_enq_regarding', true ),
+				get_post_meta( $row->ID, '_acreage_enq_subject', true ),
 				$row->post_content,
 				'1' === get_post_meta( $row->ID, self::SENT, true ) ? 'yes' : 'no',
 				'1' === get_post_meta( $row->ID, self::READ, true ) ? 'yes' : 'no',
