@@ -153,7 +153,6 @@
     list-style:none;
     font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
     color:var(--acreage-moss,#354027);
-    border-bottom:1px solid var(--acreage-rule,#DED5C0);
   }
   /* Safari draws its own triangle through ::-webkit-details-marker and ignores
      list-style, so both have to be turned off to draw our own. */
@@ -173,14 +172,55 @@
   .acreage-w-filters__disclosure[open] > .acreage-w-filters__toggle::after{
     transform:rotate(-135deg);
   }
-  .acreage-w-filters__disclosure[open] > .acreage-w-filters__toggle{border-bottom-color:transparent;}
-  .acreage-w-filters__disclosure > .acreage-w-filters__group:first-of-type{margin-top:18px;}
+  /* The summary carries no rule under it.
+     It had one, from before this panel sat inside a raised card. Inside the
+     card the line had nothing below it to divide — closed, it drew a hairline
+     across the panel 15px above the card's own bottom edge, inset from both
+     sides, which read as a divider someone had forgotten to remove. The
+     chevron is what says there is more here. */
+  .acreage-w-filters__panel > .acreage-w-filters__group:first-of-type{margin-top:18px;}
 
   /* A checkbox row is a tap target and was 21px tall — the box itself is 13px.
      Padding rather than a min-height on the label, so the whole row including
      the count on the right stays clickable. */
   .acreage-w-filters__option{padding:11px 0;}
   .acreage-w-filters__option input[type="checkbox"]{width:18px;height:18px;flex:0 0 auto;}
+
+  /* The opened panel is capped and scrolls itself.
+     Four axes of seventeen checkboxes came to 1 100px on a 375 screen — the
+     visitor opened the filters and then scrolled past four screens of them
+     before reaching a single farm, which is what made the panel read as an
+     obstacle rather than a tool. Capped, it is a block of about nine rows with
+     the rest a flick away, and the farms stay where they were.
+
+     overscroll-behavior stops the flick handing off to the page once the list
+     ends, which is what makes a nested scroller feel broken on a phone. */
+  .acreage-w-filters__panel{
+    max-height:min(58vh,460px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    /* Room for the scrollbar so it never sits on top of the counts, and the
+       thin variant where the browser offers one — a phone draws an overlay
+       bar, a desktop at this width draws a full-width one. */
+    scrollbar-width:thin;
+    padding-inline-end:10px;
+  }
+
+  /* The axes need to be told apart at a glance in a list this long. A hairline
+     between them, and the legend given the same air above it as the rows below
+     — 8px was enough on a desktop sidebar read all at once, and not enough in
+     something scrolled past. */
+  .acreage-w-filters__legend{margin-bottom:12px;}
+  /* The rule goes on the legend, not on the fieldset.
+     A <legend> is drawn through its fieldset's top border — the border stops
+     either side of it — so a border-top on the group came out as a hairline
+     with "PROVINCE" punched out of the middle of it. Given full width, the
+     legend draws the line itself and the label sits under it. */
+  .acreage-w-filters__group + .acreage-w-filters__group > .acreage-w-filters__legend{
+    width:100%;
+    border-top:1px solid var(--acreage-rule,#DED5C0);
+    padding-top:20px;
+  }
 }
 
 /* --- live filtering ------------------------------------------------------
@@ -351,7 +391,8 @@
    dropdown on the contact page matches the fields above it — a default select
    is a different height, a different border and a different font on every OS,
    and it sat in the middle of the form looking like it belonged to another
-   site. appearance:none would also remove the arrow, so it stays. */
+   site. The arrow it draws is replaced further down, in the select-arrow
+   block, rather than left native. */
 .acreage-w-form__field input,
 .acreage-w-form__field select,
 .acreage-w-form__field textarea{
@@ -960,8 +1001,20 @@ body.acreage-nav-open{overflow:hidden;}
 
 @media (max-width:600px){
   /* On a phone the row stacks, and a full-width select is easier to hit than
-     one squeezed beside its label. */
-  .acreage-w-results__sort{width:100%;}
+     one squeezed beside its label.
+
+     The label goes above the select rather than beside it, which is what makes
+     "full width" true: left inline it took 44px off the front of the row, so
+     the control started 44px right of the page gutter and lined up with
+     nothing — not the farm cards under it, not the filter card over it. Above
+     it, the select runs the full column and the pair reads the way every other
+     labelled field on this site does. */
+  .acreage-w-results__sort{
+    width:100%;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+  }
   .acreage-w-results__select{flex:1 1 auto;min-width:0;}
 }
 
@@ -1363,7 +1416,8 @@ body.acreage-nav-open{overflow:hidden;}
    It is a background image rather than a pseudo-element because a select
    cannot have one. */
 .acreage-w-results__select,
-.acreage-w-search__select{
+.acreage-w-search__select,
+.acreage-w-form__field select{
   /* Without this the browser keeps its own arrow and draws ours beside it. */
   appearance:none;
   -webkit-appearance:none;
@@ -1384,10 +1438,20 @@ body.acreage-nav-open{overflow:hidden;}
   background-position:right 12px center;
   padding-right:36px;
 }
+/* The enquiry form's "Regarding" dropdown was left out of this block when it
+   was written, so it kept the browser's own arrow — and a native arrow ignores
+   padding, which is why it sat hard against the field's right border. 12px is
+   the inset the field already uses on its left, so the chevron now sits on the
+   same margin as the text opposite it. */
+.acreage-w-form__field select{
+  background-position:right 12px center;
+  padding-right:36px;
+}
 
 /* Old Edge drew a second arrow of its own beside ours. */
 .acreage-w-results__select::-ms-expand,
-.acreage-w-search__select::-ms-expand{display:none;}
+.acreage-w-search__select::-ms-expand,
+.acreage-w-form__field select::-ms-expand{display:none;}
 
 @media (prefers-reduced-motion:no-preference){
   .acreage-w-results__select,

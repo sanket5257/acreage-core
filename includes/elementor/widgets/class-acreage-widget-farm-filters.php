@@ -317,6 +317,21 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 				}
 			}
 
+			/*
+			 * The groups and the actions share a wrapper so that the phone has
+			 * one box to cap.
+			 *
+			 * Opened, this panel is four screens of checkboxes — seventeen of
+			 * them on a stocked site — and every one of them sits between the
+			 * visitor and the first farm. The wrapper is what the mobile rules
+			 * give a max-height and its own scroll to, which leaves the summary
+			 * outside it and therefore still on screen: the control that closes
+			 * the panel does not scroll away with the thing it closes.
+			 *
+			 * A wrapper rather than scrolling the <details> itself, because that
+			 * would take the summary with it.
+			 */
+			echo '<div class="acreage-w-filters__panel">';
 			echo $groups; // phpcs:ignore WordPress.Security.EscapingOutput.OutputNotEscaped -- escaped as it was built.
 			?>
 
@@ -335,6 +350,7 @@ class Acreage_Widget_Farm_Filters extends Acreage_Widget_Base {
 						?>
 					</a>
 				<?php endif; ?>
+			</div>
 			</div>
 			</details>
 		</form>
