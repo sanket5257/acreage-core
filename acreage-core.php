@@ -44,6 +44,8 @@ require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-quick-add.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-updater.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-enquiry.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-grid.php';
+require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-species.php';
+require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-search.php';
 require_once ACREAGE_CORE_DIR . 'includes/elementor/class-acreage-elementor.php';
 
 /** Boot. */
@@ -63,6 +65,8 @@ function acreage_core_boot() {
 	new Acreage_Core_Query();
 	new Acreage_Core_Enquiries();
 	new Acreage_Core_Grid();
+	new Acreage_Core_Species();
+	new Acreage_Core_Search();
 
 	if ( is_admin() ) {
 		new Acreage_Core_Admin();

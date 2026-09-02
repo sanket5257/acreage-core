@@ -67,6 +67,18 @@ class Acreage_Core_Elementor {
 		);
 
 		/*
+		 * The Wikipedia card behind a species chip. Enqueued by the species
+		 * list, which appears on one listing page at a time.
+		 */
+		wp_register_script(
+			'acreage-species',
+			ACREAGE_CORE_URL . 'assets/js/species.js',
+			array(),
+			ACREAGE_CORE_VERSION,
+			true
+		);
+
+		/*
 		 * The live filter. Enqueued by the Farm Filters panel, which is the only
 		 * thing that can drive it — and which is on one page of the site.
 		 */

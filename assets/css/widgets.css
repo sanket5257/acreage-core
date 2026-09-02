@@ -1459,3 +1459,260 @@ body.acreage-nav-open{overflow:hidden;}
 }
 .acreage-w-results__select:hover,
 .acreage-w-search__select:hover{border-color:var(--acreage-moss,#354027);}
+
+/* ================================================ the species hover card */
+/* One panel, appended to <body>, moved to whichever chip asked for it. It is
+   fixed rather than absolute on purpose: the chip list lives inside Elementor
+   sections whose overflow we do not control, and an absolutely positioned card
+   is clipped by the first ancestor that hides it — which on a listing page is
+   the section itself.
+
+   z-index sits above Elementor's sticky header (99) and below its lightbox
+   (9999), so the card covers the page it belongs to and never the photograph
+   a visitor has opened over the top of it. */
+.acreage-w-wiki{
+  position:fixed;z-index:999;top:0;left:0;
+  width:min(320px,calc(100vw - 24px));
+  background:var(--acreage-paper,#F5F0E4);
+  color:var(--acreage-ink,#1F2A21);
+  border:1px solid var(--acreage-rule,#DED5C0);
+  box-shadow:0 18px 40px rgba(0,0,0,.14);
+  /* The card is a hint, not a target. Without this, the card appearing under a
+     travelling pointer swallows the mouseout of the chip it came from and the
+     row below it stops responding until the pointer leaves. The body inside
+     turns pointer events back on, so the Wikipedia link is still clickable. */
+  pointer-events:none;
+}
+.acreage-w-wiki__body{padding:14px 16px 12px;pointer-events:auto;}
+.acreage-w-wiki__media{display:block;margin:0;aspect-ratio:16/10;overflow:hidden;background:var(--acreage-panel,#EFE9DA);}
+.acreage-w-wiki__media img{width:100%;height:100%;object-fit:cover;display:block;}
+.acreage-w-wiki__name{
+  margin:0 0 6px;font-weight:700;font-size:14px;line-height:1.3;
+  color:var(--acreage-moss,#354027);
+}
+/* Room for roughly four lines of Wikipedia's opening sentence. The server has
+   already trimmed the extract; this is the guard for the one that arrives long
+   anyway, so a card can never grow taller than the viewport it is placed in. */
+.acreage-w-wiki__text{
+  margin:0;font-size:13px;line-height:1.55;opacity:.85;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;
+  overflow:hidden;
+}
+/* Not decoration: Wikipedia's text is CC BY-SA and quoting it obliges the card
+   to say so and to link back. Small, quiet, and always there. */
+.acreage-w-wiki__credit{
+  margin:10px 0 0;padding-top:9px;border-top:1px solid rgba(0,0,0,.1);
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.6;
+}
+.acreage-w-wiki__link{color:inherit;text-decoration:none;border-bottom:1px solid currentColor;}
+.acreage-w-wiki__link:hover{color:var(--acreage-w-accent,#9C6423);}
+
+/* The chip says there is more to read, quietly — a dotted underline is the
+   convention for "hover me" and costs the chip none of its own weight. */
+.acreage-w-species__chip[data-species]{text-decoration:underline dotted rgba(0,0,0,.35);text-underline-offset:3px;}
+.acreage-w-species__chip[data-species]:hover,
+.acreage-w-species__chip[data-species]:focus-visible{text-decoration-color:currentColor;}
+
+@media (prefers-reduced-motion:no-preference){
+  .acreage-w-wiki{opacity:0;transform:translateY(4px);transition:opacity 140ms ease,transform 140ms ease;}
+  .acreage-w-wiki.is-in{opacity:1;transform:none;}
+}
+
+/* --- header search ------------------------------------------------------ */
+/* A magnifier in the bar, and a keyword box that drops out of it. NOT a search
+   bar sitting open in the header: the brief is calm and premium, and a header
+   with a permanent field and a coloured Go button is the visual signature of
+   the property portals the client rejected. Closed, this costs the header
+   seventeen pixels of line art.
+
+   The box is placed against the bar rather than against the magnifier, so it
+   lands on the page's own margin instead of floating at whatever x-position the
+   icon happens to sit at once the menu above it has been edited. */
+.acreage-nav__search{position:static;display:flex;align-items:center;}
+.acreage-nav__searchtoggle{
+  display:inline-flex;align-items:center;gap:8px;
+  color:var(--acreage-nav-link);text-decoration:none;
+  padding:8px 0;cursor:pointer;
+  border-bottom:2px solid transparent;
+}
+.acreage-nav__searchtoggle:hover,
+.acreage-nav.is-searching .acreage-nav__searchtoggle{color:var(--acreage-moss,#354027);}
+.acreage-nav__searchicon{display:block;flex:none;}
+/* The word is set to the same specification as a menu item, because that is
+   what it reads as standing beside them — a lone icon in a row of words looks
+   like something that failed to load, and in the burger panel it would be an
+   unlabelled row in a column of labelled ones. */
+.acreage-nav__searchlabel{
+  font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+}
+
+.acreage-nav__searchform{
+  display:none;
+  position:absolute;top:100%;right:clamp(18px,4vw,72px);
+  z-index:40;
+  width:min(420px,calc(100vw - 36px));
+  gap:0;
+  background:var(--acreage-nav-bg,var(--acreage-paper,#F5F0E4));
+  border:1px solid var(--acreage-rule,#DED5C0);
+  box-shadow:0 18px 40px -24px rgba(28,34,18,.55);
+  padding:10px;
+}
+.acreage-nav.is-searching .acreage-nav__searchform{display:flex;}
+.acreage-nav__searchfield{
+  flex:1 1 auto;min-width:0;
+  border:0;background:transparent;
+  font:inherit;font-size:15px;color:var(--acreage-ink,#1F2A21);
+  padding:10px 12px;
+}
+/* The field carries no border of its own — the panel around it is the border —
+   so the focus ring has to be put back deliberately or a keyboard user has no
+   idea where they are. */
+.acreage-nav__searchfield:focus{outline:2px solid var(--acreage-moss,#354027);outline-offset:-2px;}
+.acreage-nav__searchfield::-webkit-search-cancel-button{cursor:pointer;}
+.acreage-nav__searchsubmit{
+  flex:none;cursor:pointer;font-family:inherit;
+  background-color:var(--acreage-btn-bg,#354027);
+  color:var(--acreage-btn-text,#F4F2EA);
+  border:0;padding:12px 22px;
+  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  transition:background .18s,color .18s;
+}
+.acreage-nav__searchsubmit:hover{
+  background-color:var(--acreage-btn-hover-bg,#9C6423);
+  color:var(--acreage-btn-hover-text,#fff);
+}
+
+/* The bar is the containing block for the dropped box, and it only becomes one
+   below the breakpoint in the rules above — where it also has to hold the menu
+   overlay. Stated here as well so the box hangs off the bar at every width. */
+.acreage-nav__bar{position:relative;}
+
+@media (max-width:900px){
+  /* Inside the burger panel the search is a row like any other, and the box is
+     part of the column rather than a thing floating over it — there is no room
+     beside a phone-width overlay for anything to drop out of. */
+  .acreage-nav__search{display:block;order:-1;}
+  /* display:flex, not the inline-flex it carries in the bar: a row in this
+     panel has to span it, or its top rule stops dead at the end of the word
+     while every rule under it runs the full width. */
+  .acreage-nav__searchtoggle{
+    display:flex;align-items:center;
+    padding:13px clamp(18px,5vw,32px);min-height:44px;
+    border-top:1px solid var(--acreage-rule,#DED5C0);border-bottom:0;
+    font-size:14px;
+  }
+  .acreage-nav__searchform{
+    position:static;width:auto;border:0;box-shadow:none;
+    padding:0 clamp(18px,5vw,32px) 14px;
+    background:transparent;
+  }
+  .acreage-nav__searchfield{
+    border:1px solid var(--acreage-rule,#DED5C0);background:#fff;min-height:44px;
+  }
+  .acreage-nav__searchsubmit{min-height:44px;}
+}
+
+/* ============================================ hidden means hidden, always */
+/* `[hidden] { display: none }` is a USER-AGENT rule, and any author rule that
+   sets `display` on the same element beats it. So an element styled
+   `display:flex` in this file cannot be hidden by setting its hidden property
+   in script — the attribute lands, and nothing happens on screen.
+
+   That is not a hypothetical. `.acreage-w-pages` is `display:flex`, and
+   filters.js sets `pages.hidden = true` on the first live filter, because page
+   links rendered for twelve farms stop being true the moment the visitor
+   filters down to seven. The attribute was being set correctly and the links
+   stayed on screen, still pointing at /page/2/ with no filter in the URL — so
+   following them dropped the visitor's filter and showed them a cattle farm in
+   a game-farms-only result set. `.acreage-w-wiki__media` had the same fault: a
+   species with no photograph would have kept an empty grey placeholder.
+
+   One rule for the whole namespace rather than two patches, because the trap
+   catches the next `display` added to any of these components too. !important
+   is warranted exactly here: this rule's entire job is to be unconditional. */
+[class*="acreage-w-"][hidden],
+[class*="acreage-nav"][hidden]{display:none!important;}
+
+/* ================================== the gallery as a sideways filmstrip */
+/* Used when a farm has more photographs than the wrapped row can hold without
+   turning the page into a contact sheet. Pure CSS scroll-snap, which is the
+   same answer the Farm Grid's sideways scroller gives: it works with a swipe,
+   a trackpad, the scrollbar, and tabbing between the photographs, and there is
+   no JavaScript to fail. The widget prints the track size inline. */
+.acreage-w-gallery--scroll{
+  grid-auto-flow:column;
+  grid-template-columns:none;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:x mandatory;
+  /* Room under the row for the scrollbar, so it never sits over the last
+     photograph, and a little at the sides for the focus ring on a thumbnail at
+     either end — outlines draw outside the box and an overflow container clips
+     them, which is how a keyboard user loses track of where they are. */
+  padding:3px 3px 14px;
+  margin:0 -3px;
+  scroll-padding-inline:3px;
+}
+.acreage-w-gallery--scroll > *{scroll-snap-align:start;}
+/* The strip is focusable so that arrow keys scroll it; say so visibly. */
+.acreage-w-gallery--scroll:focus-visible{outline:2px solid var(--acreage-moss,#354027);outline-offset:2px;}
+
+/* A visible track, not an overlay scrollbar that fades out.
+   On a desktop with a mouse the scrollbar IS the affordance — the thing that
+   says this row continues past the edge — so it is styled to be read rather
+   than hidden for tidiness. */
+/* Written for .acreage-w-gallery, not only the --scroll variant: the phone
+   rules below turn every gallery into a strip, and a narrow desktop window is
+   the one place that shows a classic chunky scrollbar rather than the overlay
+   one a real phone draws. A wrapped gallery never overflows, so this costs it
+   nothing. */
+.acreage-w-gallery{scrollbar-width:thin;scrollbar-color:var(--acreage-panel-deep,#DED5C0) transparent;}
+.acreage-w-gallery::-webkit-scrollbar{height:8px;}
+.acreage-w-gallery::-webkit-scrollbar-track{background:transparent;}
+.acreage-w-gallery::-webkit-scrollbar-thumb{
+  background:var(--acreage-panel-deep,#DED5C0);border-radius:99px;
+}
+.acreage-w-gallery:hover::-webkit-scrollbar-thumb{background:var(--acreage-stone,#8A8172);}
+
+/* --- the phone ---------------------------------------------------------- */
+/* One photograph at a time, with the next one clipped by the edge of the
+   screen. That sliver is the whole affordance: it is what makes a thumb swipe
+   without being told to, and it beats an arrow, a dot row or a caption saying
+   "swipe", none of which survive being looked at for half a second.
+
+   A wrapped grid is the wrong shape here whatever the count — 20 photographs
+   two-up is ten screens of scrolling to get past the gallery — so below 700px
+   the row scrolls even when the farm has few enough to wrap. */
+@media (max-width:700px){
+  /* EVERY gallery, not only the ones PHP marked.
+     The server cannot know the screen it is being read on, and on a phone the
+     wrapped row is the wrong shape at any count: two photographs side by side
+     are 170px wide and show nothing, and twenty of them are ten screens of
+     scrolling to get past. So the strip is the mobile layout full stop, and
+     the inline grid-template-columns the widget printed — a desktop
+     measurement — is overridden here. !important because it is competing with
+     a style attribute, which nothing else can beat. */
+  .acreage-w-gallery{
+    grid-auto-flow:column!important;
+    grid-template-columns:none!important;
+    /* 78% of a 375px screen is 292px; the remaining 22% is the peek. */
+    grid-auto-columns:78%!important;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;
+    padding:3px 3px 14px;
+    margin:0 -3px;
+    scroll-padding-inline:3px;
+  }
+  .acreage-w-gallery > *{scroll-snap-align:start;}
+  /* Taller than the 3:2 of the wrapped thumbnails: at nearly full width this is
+     the main view of the farm on a phone, not a contact print of it. */
+  .acreage-w-gallery__item{aspect-ratio:4/3;}
+}
+
+/* Nothing about a filmstrip should animate itself; snapping is the browser's,
+   and it already respects the visitor's motion setting. The zoom on hover is
+   ours, and a photograph that grows under a thumb resting mid-swipe is noise. */
+@media (pointer:coarse){
+  .acreage-w-gallery__item:hover img{transform:none;}
+}

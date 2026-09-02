@@ -26,6 +26,15 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 	const MIN_THUMB = 120;
 	const MAX_THUMB = 400;
 
+	/**
+	 * More photographs than this and the row runs sideways instead of wrapping.
+	 *
+	 * Eight is two full rows at the default thumbnail size on a laptop. Up to
+	 * there the wrapped grid still reads as "the pictures of this farm"; past it
+	 * the page turns into a contact sheet.
+	 */
+	const SCROLL_AFTER = 8;
+
 	public function get_name() {
 		return 'acreage-farm-details';
 	}
@@ -78,6 +87,15 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			'condition'    => array( 'part' => array( 'sections', 'description', 'improvements', 'wildlife', 'land_claims', 'location' ) ),
 		) );
 
+		$this->add_control( 'species_cards', array(
+			'label'        => __( 'Show a Wikipedia card on hover', 'acreage' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'default'      => 'yes',
+			'return_value' => 'yes',
+			'condition'    => array( 'part' => 'species' ),
+			'description'  => __( 'Resting on a species shows its photograph and the opening lines of its Wikipedia article. Each animal is looked up once and kept, so the page stays fast. Set the article, or turn one off, under Farms → Species.', 'acreage' ),
+		) );
+
 		$this->add_control( 'location_heading', array(
 			'label'     => __( 'Map heading', 'acreage' ),
 			'type'      => \Elementor\Controls_Manager::TEXT,
@@ -115,6 +133,39 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			'return_value' => 'yes',
 			'condition'    => array( 'part' => 'gallery' ),
 			'description'  => __( 'All the photographs of the farm become one slideshow, with arrows and the arrow keys to move between them. Turned off, each photograph opens on its own in a new tab.', 'acreage' ),
+		) );
+
+		/*
+		 * TWENTY PHOTOGRAPHS IS A DIFFERENT THING FROM FOUR
+		 *
+		 * The row wraps, which is right for the four or five pictures a farm
+		 * usually carries. A seller who sends twenty gets five rows of them —
+		 * two and a half screens of thumbnails between the description and the
+		 * map, and a visitor scrolling past a wall of small pictures rather than
+		 * looking at the farm. Past a certain count the honest shape is a strip
+		 * that runs sideways: it takes one row however many photographs there
+		 * are, and the row itself says there is more to see.
+		 */
+		$this->add_control( 'gallery_layout', array(
+			'label'     => __( 'Row of photographs', 'acreage' ),
+			'type'      => \Elementor\Controls_Manager::SELECT,
+			'default'   => 'auto',
+			'condition' => array( 'part' => 'gallery' ),
+			'options'   => array(
+				'auto'   => __( 'Wrap a few, scroll a lot (recommended)', 'acreage' ),
+				'scroll' => __( 'Always one row that scrolls sideways', 'acreage' ),
+				'grid'   => __( 'Always wrap onto more rows', 'acreage' ),
+			),
+		) );
+
+		$this->add_control( 'gallery_scroll_after', array(
+			'label'       => __( 'Start scrolling above', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::NUMBER,
+			'default'     => self::SCROLL_AFTER,
+			'min'         => 2,
+			'max'         => 40,
+			'condition'   => array( 'part' => 'gallery', 'gallery_layout' => 'auto' ),
+			'description' => __( 'Farms with more photographs than this get one sideways row instead of several wrapped ones.', 'acreage' ),
 		) );
 
 		$this->add_control( 'thumb_size', array(
@@ -600,6 +651,14 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 		echo '</dl>';
 	}
 
+	/**
+	 * The species chips, and — on hover — what Wikipedia says about each animal.
+	 *
+	 * The chip is a link to every other farm carrying that game and stays one:
+	 * the card is layered on top by script, so a visitor with no JavaScript, or
+	 * one on a phone where a tap has to mean "open", loses nothing they had.
+	 * The lookup itself lives in Acreage_Core_Species, which caches it.
+	 */
 	private function render_species( $post_id ) {
 		$terms = get_the_terms( $post_id, 'species' );
 
@@ -608,15 +667,44 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 			return;
 		}
 
+		$settings = $this->get_settings_for_display();
+		$cards    = class_exists( 'Acreage_Core_Species' )
+			&& ( ! isset( $settings['species_cards'] ) || 'yes' === $settings['species_cards'] );
+
+		if ( $cards ) {
+			wp_enqueue_script( 'acreage-species' );
+
+			// One query for every chip's meta rather than two per chip.
+			update_termmeta_cache( wp_list_pluck( $terms, 'term_id' ) );
+		}
+
+		$endpoint = admin_url( 'admin-ajax.php' );
+
 		echo '<ul class="acreage-w-species">';
 		foreach ( $terms as $term ) {
 			$url = add_query_arg(
 				array( 'post_type' => Acreage_Core_Post_Types::POST_TYPE, 'species' => $term->slug ),
 				$this->archive_url()
 			);
+
+			/*
+			 * data-species is what the script looks for, and it is only printed
+			 * for a term that has something to show. A species the client has
+			 * switched the card off for, or pointed at nothing, keeps its plain
+			 * chip rather than advertising a card that never arrives.
+			 */
+			$hoverable = $cards && '' !== Acreage_Core_Species::article( $term );
+
 			printf(
-				'<li><a class="acreage-w-species__chip" href="%s">%s</a></li>',
+				'<li><a class="acreage-w-species__chip" href="%s"%s>%s</a></li>',
 				esc_url( $url ),
+				$hoverable
+					? sprintf(
+						' data-species="%d" data-endpoint="%s"',
+						(int) $term->term_id,
+						esc_url( $endpoint )
+					)
+					: '',
 				esc_html( $term->name )
 			);
 		}
@@ -636,6 +724,20 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 		$size     = max( self::MIN_THUMB, min( self::MAX_THUMB, $size ) );
 
 		/*
+		 * Wrapped rows, or one row that scrolls?
+		 *
+		 * Decided from the number of photographs this particular farm has,
+		 * because that is the thing that changes — the layout is chosen once in
+		 * the editor and has to be right for the farm with four pictures and the
+		 * farm with twenty.
+		 */
+		$layout    = isset( $settings['gallery_layout'] ) ? $settings['gallery_layout'] : 'auto';
+		$threshold = isset( $settings['gallery_scroll_after'] ) ? (int) $settings['gallery_scroll_after'] : self::SCROLL_AFTER;
+		$threshold = max( 2, min( 40, $threshold ) );
+
+		$scroll = 'scroll' === $layout || ( 'auto' === $layout && count( $ids ) > $threshold );
+
+		/*
 		 * Printed inline rather than through the control's own selectors.
 		 *
 		 * This row was three fixed columns until now, and that rule lives in a
@@ -649,11 +751,36 @@ class Acreage_Widget_Farm_Details extends Acreage_Widget_Base {
 		 * at half the row less half the gap means two thumbnails always fit,
 		 * whatever the size above says, so the row never degenerates into one
 		 * picture per line.
+		 *
+		 * The scrolling row sizes its columns instead of laying out a template,
+		 * and states a minimum as well as a maximum: a strip whose thumbnails
+		 * are free to shrink ends up showing sixteen postage stamps rather than
+		 * a few photographs you can actually see.
 		 */
-		printf(
-			'<div class="acreage-w-gallery" style="grid-template-columns:repeat(auto-fill,minmax(min(%dpx,calc(50%% - 5px)),1fr))">',
-			$size
-		);
+		/*
+		 * The strip is a tab stop of its own, on top of the links inside it.
+		 *
+		 * A scrollable region has to be reachable by keyboard, and while tabbing
+		 * to photograph nine does scroll the strip to it, that is twenty stops
+		 * to see what is in the row. Focusing the strip itself and holding an
+		 * arrow key is how a keyboard user reads a filmstrip, and the label is
+		 * what a screen reader announces on arriving: how many photographs there
+		 * are, which is exactly the fact the sideways row is hiding from it.
+		 */
+		if ( $scroll ) {
+			printf(
+				'<div class="acreage-w-gallery acreage-w-gallery--scroll" style="grid-auto-columns:minmax(%1$dpx,%2$dpx)" tabindex="0" role="group" aria-label="%3$s">',
+				(int) max( self::MIN_THUMB, round( $size * 0.8 ) ),
+				$size,
+				/* translators: %d: number of photographs. */
+				esc_attr( sprintf( _n( '%d photograph of this farm', '%d photographs of this farm', count( $ids ), 'acreage' ), count( $ids ) ) )
+			);
+		} else {
+			printf(
+				'<div class="acreage-w-gallery" style="grid-template-columns:repeat(auto-fill,minmax(min(%dpx,calc(50%% - 5px)),1fr))">',
+				$size
+			);
+		}
 		/*
 		 * ONE SLIDESHOW, NOT SIX SEPARATE LINKS
 		 *

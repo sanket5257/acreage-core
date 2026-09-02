@@ -77,6 +77,22 @@ class Acreage_Widget_Nav extends Acreage_Widget_Base {
 			'condition'    => array( 'show_brand' => 'yes' ),
 		) );
 
+		$this->add_control( 'show_search', array(
+			'label'        => __( 'Show the search button', 'acreage' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'default'      => 'yes',
+			'return_value' => 'yes',
+			'description'  => __( 'A magnifier in the bar that opens a keyword box. Searching goes to the farms page with the results already filtered, where the visitor can narrow them further.', 'acreage' ),
+		) );
+
+		$this->add_control( 'search_placeholder', array(
+			'label'       => __( 'Search wording', 'acreage' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '',
+			'condition'   => array( 'show_search' => 'yes' ),
+			'description' => __( 'Shown greyed out inside the empty box. Leave empty for “Search farms”.', 'acreage' ),
+		) );
+
 		$this->add_control( 'cta_text', array(
 			'label'   => __( 'Button wording', 'acreage' ),
 			'type'    => \Elementor\Controls_Manager::TEXT,
@@ -221,6 +237,10 @@ class Acreage_Widget_Nav extends Acreage_Widget_Base {
 
 					wp_nav_menu( $args );
 
+					if ( 'yes' === $s['show_search'] ) :
+						$this->render_search( $uid, $s );
+					endif;
+
 					if ( $cta_text ) :
 						?>
 						<a class="acreage-nav__cta" href="<?php echo esc_url( $cta_url ? $cta_url : home_url( '/' ) ); ?>">
@@ -233,5 +253,70 @@ class Acreage_Widget_Nav extends Acreage_Widget_Base {
 		<?php
 
 		wp_enqueue_script( 'acreage-nav' );
+	}
+
+	/**
+	 * The header search.
+	 *
+	 * WHY THE BUTTON IS A LINK
+	 *
+	 * With JavaScript running, this is a disclosure: the magnifier opens a
+	 * keyword box under the bar and nothing navigates. Written as a <button>
+	 * that is what it would also be with JavaScript off — a control that does
+	 * nothing at all, next to a box the stylesheet is hiding.
+	 *
+	 * So it ships as a link to the farms page, where the full search and the
+	 * filter panel already live. Turn scripting off and the magnifier still
+	 * takes a visitor somewhere they can search; turn it on and nav.js upgrades
+	 * the same element into the disclosure, adding aria-expanded as it binds.
+	 * Nobody gets a dead control.
+	 *
+	 * The form itself is a plain GET to the archive with one field named "s",
+	 * which is the same shape the Farm Search widget submits — so a header
+	 * search and a search made on the page land on identical URLs, and the
+	 * filter panel reads the keyword back out of the query string either way.
+	 */
+	private function render_search( $uid, $s ) {
+		$id          = $uid . '-search';
+		$placeholder = ! empty( $s['search_placeholder'] )
+			? $s['search_placeholder']
+			: __( 'Search farms', 'acreage' );
+		?>
+		<div class="acreage-nav__search">
+			<a
+				class="acreage-nav__searchtoggle"
+				href="<?php echo esc_url( $this->archive_url() ); ?>"
+				aria-controls="<?php echo esc_attr( $id ); ?>"
+				data-search-toggle>
+				<svg class="acreage-nav__searchicon" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true" focusable="false">
+					<circle cx="7.2" cy="7.2" r="5.4" stroke="currentColor" stroke-width="1.6" />
+					<path d="M11.3 11.3L15.4 15.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+				</svg>
+				<span class="acreage-nav__searchlabel"><?php esc_html_e( 'Search', 'acreage' ); ?></span>
+			</a>
+
+			<form
+				id="<?php echo esc_attr( $id ); ?>"
+				class="acreage-nav__searchform"
+				role="search"
+				method="get"
+				action="<?php echo esc_url( $this->archive_url() ); ?>">
+				<label class="screen-reader-text" for="<?php echo esc_attr( $id ); ?>-field">
+					<?php esc_html_e( 'Search farms', 'acreage' ); ?>
+				</label>
+				<input
+					id="<?php echo esc_attr( $id ); ?>-field"
+					class="acreage-nav__searchfield"
+					type="search"
+					name="s"
+					value="<?php echo esc_attr( Acreage_Core_Filters::search( $_GET ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public, read-only. ?>"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>"
+					autocomplete="off" />
+				<button class="acreage-nav__searchsubmit" type="submit">
+					<?php esc_html_e( 'Search', 'acreage' ); ?>
+				</button>
+			</form>
+		</div>
+		<?php
 	}
 }
