@@ -3,7 +3,7 @@
  * Plugin Name:       Acreage Core
  * Plugin URI:        https://github.com/sanket5257/acreage-core
  * Description:       Owns the farm listings — post type, taxonomies, fields and the combined filter. Independent of the active theme, so the farms survive any redesign.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Acreage
@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ACREAGE_CORE_VERSION', '1.1.0' );
+define( 'ACREAGE_CORE_VERSION', '1.2.0' );
 define( 'ACREAGE_CORE_FILE', __FILE__ );
 define( 'ACREAGE_CORE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ACREAGE_CORE_URL', plugin_dir_url( __FILE__ ) );
