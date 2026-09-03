@@ -102,6 +102,7 @@ class Acreage_Core_Elementor {
 
 		$widgets = array(
 			'nav'            => 'Acreage_Widget_Nav',
+			'links'          => 'Acreage_Widget_Links',
 			'farm-grid'      => 'Acreage_Widget_Farm_Grid',
 			'farm-search'    => 'Acreage_Widget_Farm_Search',
 			'farm-filters'   => 'Acreage_Widget_Farm_Filters',

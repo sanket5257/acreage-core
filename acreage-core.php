@@ -35,6 +35,7 @@ if ( ! defined( 'ACREAGE_CORE_GITHUB_REPO' ) ) {
 }
 
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-post-types.php';
+require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-permalinks.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-fields.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-filters.php';
 require_once ACREAGE_CORE_DIR . 'includes/class-acreage-core-query.php';
@@ -70,6 +71,7 @@ function acreage_core_boot() {
 
 	if ( is_admin() ) {
 		new Acreage_Core_Admin();
+		new Acreage_Core_Permalinks();
 		new Acreage_Core_Quick_Add();
 		$GLOBALS['acreage_core_updater'] = new Acreage_Core_Updater( ACREAGE_CORE_GITHUB_REPO );
 	} elseif ( defined( 'DOING_CRON' ) && DOING_CRON ) {
