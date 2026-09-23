@@ -149,7 +149,7 @@ class Acreage_Widget_Farm_Search extends Acreage_Widget_Base {
 					<div class="acreage-w-search__field">
 						<label class="acreage-w-search__label" for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label>
 						<select class="acreage-w-search__select" name="<?php echo esc_attr( $taxonomy ); ?>" id="<?php echo esc_attr( $id ); ?>">
-							<option value=""><?php esc_html_e( 'Any', 'acreage' ); ?></option>
+							<option value=""><?php esc_html_e( 'All', 'acreage' ); ?></option>
 							<?php foreach ( $terms as $term ) : ?>
 								<option value="<?php echo esc_attr( $term->slug ); ?>" <?php selected( $current, $term->slug ); ?>>
 									<?php echo esc_html( $term->name ); ?>

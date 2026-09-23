@@ -41,8 +41,12 @@ class Acreage_Core_Species {
 	/** Term meta: do not show a card for this one at all. */
 	const META_OFF = 'acreage_species_no_card';
 
-	/** Cache prefix. Keyed on the article, so editing the override refreshes it. */
-	const CACHE_PREFIX = 'acreage_wiki_';
+	/**
+	 * Cache prefix. Keyed on the article, so editing the override refreshes it.
+	 * Bumped when the rules for a stored card change, so answers cached under
+	 * the old rules (kept for a fortnight) are not served after an upgrade.
+	 */
+	const CACHE_PREFIX = 'acreage_wiki2_';
 
 	/** A good answer is worth keeping; a bad one is worth retrying sooner. */
 	const CACHE_HIT  = 1209600; // 14 days.
@@ -291,9 +295,12 @@ class Acreage_Core_Species {
 			$image = $data['originalimage']['source'];
 		}
 
-		// Only Wikimedia's own image host, whatever the payload claims — the
+		// Only Wikimedia's own image hosts, whatever the payload claims — the
 		// card puts this straight into an <img src>, so it is not taken on trust.
-		if ( $image && ! preg_match( '#^https://upload\.wikimedia\.org/#', $image ) ) {
+		// Thumbnails moved from upload.wikimedia.org to thumb.wikimedia.org in
+		// 2026; both are Wikimedia's, and allowing only the old one silently
+		// dropped the photograph from every card.
+		if ( $image && ! preg_match( '#^https://(upload|thumb)\.wikimedia\.org/#', $image ) ) {
 			$image  = '';
 			$width  = 0;
 			$height = 0;
